@@ -21,7 +21,7 @@ class StarterConanRecipe(ConanFile):
 
     # Putting all of your packages here
     def requirements(self):
-        pass
+        self.requires("imguidocking/1.0")
 
     def build(self):
         cmake = CMake(self)
