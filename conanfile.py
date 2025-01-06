@@ -21,7 +21,10 @@ class StarterConanRecipe(ConanFile):
 
     # Putting all of your packages here
     def requirements(self):
-        self.requires("imguidocking/1.0")
+        self.requires("glad/0.1.36")
+        self.requires("fmt/10.2.1", transitive_headers=True)
+        self.requires("vulkan-headers/1.3.290.0")
+        self.requires("imguidocking/2.0")
 
     def build(self):
         cmake = CMake(self)

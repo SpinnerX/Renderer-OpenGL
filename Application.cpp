@@ -1,6 +1,6 @@
-#include <iostream>
-#include <imgui/backends/imgui_impl_glfw.h>
+#include <stdio.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_glfw.h>
 #include <GLFW/glfw3.h>
 using namespace std;
 
@@ -11,7 +11,9 @@ int main(){
         return -1;
     }
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL Renderer", nullptr, nullptr);
+    int width = 800, height = 600;
+
+    GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Renderer", nullptr, nullptr);
     glfwMakeContextCurrent(window);    
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -31,18 +33,27 @@ int main(){
         glfwPollEvents();
         glfwSwapBuffers(window);
         
-        // Begin
-        ImGui_ImplGlfw_NewFrame();
+        // Begin Imgui Frame
         ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        ImGui::Begin("Test");
+        ImGui::Button("New Button");
+        ImGui::End();
+
+        ImGui::ShowDemoWindow();
 
         // End
         ImGuiIO& io = ImGui::GetIO();
         io.DisplaySize.x = 800;
         io.DisplaySize.y = 600;
         ImGui::Render();
+        //! @note Clear each frame
+        // glClearColor(1.f, 1.f, 1.f, 1.f);
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable){
             GLFWwindow* backup_ctx = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
