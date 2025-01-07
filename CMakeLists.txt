@@ -8,12 +8,15 @@ build_application(
     src/Renderer-OpenGL/IndexBuffer.cpp
     src/Renderer-OpenGL/Shader.cpp
     src/Renderer-OpenGL/VertexArray.cpp
+    src/Renderer-OpenGL/Image.cpp
+    src/Renderer-OpenGL/Texture2D.cpp
     Application.cpp
     
     PACKAGES
     glfw3
     glm
     glad
+    stb
     fmt
     imguidocking
     Vulkan
@@ -23,6 +26,7 @@ build_application(
     glfw
     glm::glm
     glad::glad
+    stb::stb
     fmt::fmt
     imguidocking::imguidocking
     Vulkan::Vulkan

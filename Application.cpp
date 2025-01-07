@@ -1,14 +1,14 @@
-#include "Renderer-OpenGL/IndexBuffer.hpp"
 #include "Renderer-OpenGL/Shader.hpp"
+#include <Renderer-OpenGL/Texture2D.hpp>
 #include "Renderer-OpenGL/VertexArray.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <fmt/core.h>
 #include <stdio.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <stb_image.h>
 using namespace std;
 
 
@@ -43,14 +43,17 @@ int main(){
         return -1;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     int width = 800, height = 600;
 
     GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Renderer", nullptr, nullptr);
     glfwMakeContextCurrent(window);
+
+    fmt::print("GLFW VERSION!!!\n");
+    fmt::print("{}\n", glfwGetVersionString());
 
     //! @note Init glad
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
@@ -70,36 +73,58 @@ int main(){
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
     
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330");
+    ImGui_ImplOpenGL3_Init("#version 410");
 
 
     Shader shader = Shader("shaders/shader_0/shader_0.vert.glsl", "shaders/shader_0/shader_0.frag.glsl");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
+    // float vertices[] = {
+    //  0.5f,  0.5f, 0.0f,  // top right
+    //  0.5f, -0.5f, 0.0f,  // bottom right
+    // -0.5f, -0.5f, 0.0f,  // bottom left
+    // -0.5f,  0.5f, 0.0f   // top left 
+    // };
+    
     float vertices[] = {
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
+        // positions          // colors           // texture coords
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
     };
     unsigned int indices[] = {  // note that we start from 0!
         0, 1, 3,   // first triangle
         1, 2, 3    // second triangle
     };
 
+    // std::string filename = "assets/wall.jpg";
+    // Texture2D wall_texture = Texture2D(filename);
+
+    // if(!wall_texture.IsTextureLoaded()){
+    //     fmt::print("Wall Texture using filepath = {} DID NOT LOAD CORRECTLY!\n", filename);
+    // }
 
     //! @note Vertex/Index buffers are stored in the vertex array, we can directly set our vertices here.
     //! @note Vertex Arrays store the attributes and you need to bind them so they know which buffer to associate these attributes to which vertex buffer
     VertexArray vao = VertexArray(vertices, indices);
+    // std::string filename = "assets/wall.jpg";
+    // Texture2D wall_texture = Texture2D(filename);
 
     //! @note We are setting the vertex buffer attributes and then adding that to the vertex array
     //! @note Does the equivalent to doing these two lines
     // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     // glEnableVertexAttribArray(0);
+    //! @note These specify our vertex attribuets which also correspond to our layout bindings
+    //! @note When we do layout(location = n) ...
+    //! @note Reference to side-comments for more details
     vao.SetVertexAttribute({
-        {VertexAttributeType::FLOAT3, "ourColor", false}
+        {VertexAttributeType::FLOAT3, "aPos", false},           // layout (location = 0) in vec3 aPos;
+        {VertexAttributeType::FLOAT3, "aColor", false},         // layout (location = 1) in vec3 aColor;
+        {VertexAttributeType::FLOAT2, "aTexCoord", false}       // layout (location = 2) in vec2 aTexCoord;
     });
 
+    Texture2D wall_texture = Texture2D("assets/wall.jpg");
 
     // uncomment this call to draw in wireframe polygons.
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -109,20 +134,26 @@ int main(){
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        BeginFrame();
-
-        shader.Bind();
+        // BeginFrame();
 
         float time_val = glfwGetTime();
         float green_val = std::sin(time_val / 2.0f) + 0.5f;
 
 
-        ImGui::Begin("Test");
-        ImGui::DragFloat4("Set Color", glm::value_ptr(color));
-        ImGui::End();
+        // ImGui::Begin("Test");
+        // ImGui::DragFloat4("Set Color", glm::value_ptr(color));
+        // ImGui::End();
         // shader.Set("ourColor", glm::vec4(0.0f, green_val, 0.0f, 1.0f));
-        shader.Set("ourColor", color);
+        // shader.Set("ourColor", glm::vec3(color.x, color.y, color.z));
+        // shader.Set("texture2", 1);
 
+        // wall_texture.Bind();
+
+        // binding our texture to correspond to texture units
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, texture);
+        wall_texture.Bind();
+        shader.Bind();
         vao.Bind();
 
         // glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -130,7 +161,7 @@ int main(){
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        EndFrame(window, width, height);
+        // EndFrame(window, width, height);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
