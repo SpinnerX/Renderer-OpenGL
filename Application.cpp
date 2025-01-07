@@ -125,34 +125,28 @@ int main(){
     });
 
     Texture2D wall_texture = Texture2D("assets/wall.jpg");
+    Texture2D happy_face_texture = Texture2D("assets/awesomeface.png");
 
     // uncomment this call to draw in wireframe polygons.
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glm::vec4 color = {1.0f, 0.0f, 0.0f, 1.0f};
 
+    shader.Bind();
+    shader.Set("ourTexture", 0);
+    shader.Set("texture2", 1);
+
     while (!glfwWindowShouldClose(window)){
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // BeginFrame();
+        BeginFrame();
+        EndFrame(window, width, height);
 
         float time_val = glfwGetTime();
         float green_val = std::sin(time_val / 2.0f) + 0.5f;
 
-
-        // ImGui::Begin("Test");
-        // ImGui::DragFloat4("Set Color", glm::value_ptr(color));
-        // ImGui::End();
-        // shader.Set("ourColor", glm::vec4(0.0f, green_val, 0.0f, 1.0f));
-        // shader.Set("ourColor", glm::vec3(color.x, color.y, color.z));
-        // shader.Set("texture2", 1);
-
-        // wall_texture.Bind();
-
-        // binding our texture to correspond to texture units
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, texture);
         wall_texture.Bind();
+        happy_face_texture.Bind(GL_TEXTURE1);
         shader.Bind();
         vao.Bind();
 
@@ -160,8 +154,6 @@ int main(){
         //! @note Should check if we have indices so we can only print by vertices or by vertices only (something todo)
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // EndFrame(window, width, height);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
