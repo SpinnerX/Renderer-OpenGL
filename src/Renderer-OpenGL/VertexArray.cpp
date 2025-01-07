@@ -1,6 +1,5 @@
-#include <Renderer-OpenGL/VertexBuffer.hpp>
+#include <Renderer-OpenGL/VertexArray.hpp>
 #include <glad/glad.h>
-#include <fmt/core.h>
 
 static GLenum VertexAttributeTypeToOpenGlBaseTypeConversion(VertexAttributeType type){
     switch (type){
@@ -40,27 +39,45 @@ static std::string ShaderDataTypeToString(VertexAttributeType type){
     return "Default: meaning no type was given!";
 }
 
-VertexBuffer::VertexBuffer(std::span<float> p_Vertices){
+VertexArray::VertexArray(std::span<float> p_Vertices, std::span<uint32_t> p_Indices){
+    glGenVertexArrays(1, &m_VertexArrayID);
+    //! @note Writing our vertices to our vertex buffer
+    m_Vbo = VertexBuffer(p_Vertices);
 
-    glGenBuffers(1, &m_VboID);
-    this->WriteData(p_Vertices);
-}
-
-VertexBuffer::~VertexBuffer(){
+    this->Bind();
+    m_Ibo = IndexBuffer(p_Indices);
     this->Unbind();
 }
 
-void VertexBuffer::Bind(){
-    glBindBuffer(GL_ARRAY_BUFFER, m_VboID);
-}
+VertexArray::VertexArray(const VertexBuffer& p_Vbo, const IndexBuffer& p_Ibo){
+    m_Vbo = p_Vbo;
 
-void VertexBuffer::Unbind(){
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-void VertexBuffer::SetVertexAttributes(const VertexAttributes& p_VertexAttributesLayout){
     this->Bind();
-    m_Index = 0;
+    m_Ibo = p_Ibo;
+    this->Unbind();
+}
+
+VertexArray::~VertexArray(){
+    Unbind();
+}
+
+void VertexArray::AddVertexBuffer(const VertexBuffer& p_Buffer){
+    m_Vbo = p_Buffer;
+}
+
+void VertexArray::Bind(){
+    glBindVertexArray(m_VertexArrayID);
+}
+
+void VertexArray::Unbind(){
+    glBindVertexArray(0);
+}
+
+void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesLayout){
+    // Bind vertex array
+    this->Bind();
+    m_Vbo.Bind();
+    uint32_t m_Index = 0;
 
     const auto& vert_attributes_data = p_VertexAttributesLayout;
 
@@ -127,12 +144,12 @@ void VertexBuffer::SetVertexAttributes(const VertexAttributes& p_VertexAttribute
             break;
         }
     }
+    m_Vbo.Unbind();
     this->Unbind();
 }
 
-void VertexBuffer::WriteData(std::span<float> p_Vertices){
 
-    this->Bind();
-    glBufferData(GL_ARRAY_BUFFER, p_Vertices.size_bytes(), p_Vertices.data(), GL_STATIC_DRAW);
-    // this->Unbind();
+void VertexArray::WriteData(std::span<float> p_Vertices, std::span<float> p_Indices){
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 *sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 }
