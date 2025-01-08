@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <glm/glm.hpp>
+#include <unordered_map>
 
 enum class Shader_t{
     VERTEX, FRAGMENT
@@ -8,10 +9,13 @@ enum class Shader_t{
 
 class Shader{
 public:
+    Shader() = default;
     Shader(const std::string& p_VertexShader, const std::string& p_FragmentShader);
     ~Shader();
 
     void Bind();
+    void Bind(uint32_t p_Index);
+    void Unbind(uint32_t p_Index);
     void Unbind();
     bool IsLoaded() const;
 
@@ -25,17 +29,16 @@ public:
     void Set(const std::string& name, const glm::mat3& p_Values);
     void Set(const std::string& name, const glm::mat4& p_Values);
 
+    std::string GetShaderName() const;
 private:
-    std::string IsFileLoaded(const std::string& p_Filename);
 
-    // bool LoadShaderModule(const std::string& p_Filename);
     bool LoadShaderModule(const std::string& p_Filename, Shader_t ShaderType);
     
     int GetLocation(const std::string& p_Name);
 
 private:
+    std::string m_Filepath;
     bool m_IsShaderLoaded=false;
-    std::string m_Filename;
 
     // ID for vertex shader
     uint32_t m_VertShaderID = -1;
@@ -44,4 +47,20 @@ private:
     uint32_t m_FragShaderID = -1;
 
     uint32_t m_ShaderProgramID = -1;
+};
+
+//! @note Used as our lookup for all our loaded shaders the renderer will utilize
+class ShaderLibrary{
+public:
+    //! @note Add shader to the library
+    //! @note Add shader and a custom shader name to the associated shader
+    void Add(const Shader& p_Shader);
+    void Add(const std::string& p_Filename, const Shader& p_Shader);
+
+    Shader& Get(const std::string& p_ShaderTag);
+    //! @note Enables to load the shader and use it immediately, that automatically gets added to lookup.
+    Shader Load(const std::string& p_VertShader, const std::string& p_FragShader);
+
+private:
+    std::unordered_map<std::string, Shader> m_ShaderLibs;
 };

@@ -4,18 +4,24 @@ project(Starter CXX)
 
 build_application(
     SOURCES
+    src/Renderer-OpenGL/InputPoll.cpp
     src/Renderer-OpenGL/VertexBuffer.cpp
     src/Renderer-OpenGL/IndexBuffer.cpp
     src/Renderer-OpenGL/Shader.cpp
     src/Renderer-OpenGL/VertexArray.cpp
+    src/Renderer-OpenGL/Framebuffer.cpp
+    src/Renderer-OpenGL/stb_image.cpp
     src/Renderer-OpenGL/Image.cpp
     src/Renderer-OpenGL/Texture2D.cpp
+    src/Renderer-OpenGL/BasicLightObject.cpp
+    src/Renderer-OpenGL/Camera.cpp
     Application.cpp
     
     PACKAGES
     glfw3
     glm
     glad
+    assimp
     stb
     fmt
     imguidocking
@@ -26,6 +32,7 @@ build_application(
     glfw
     glm::glm
     glad::glad
+    assimp::assimp
     stb::stb
     fmt::fmt
     imguidocking::imguidocking

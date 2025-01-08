@@ -47,6 +47,13 @@ VertexArray::VertexArray(std::span<float> p_Vertices, std::span<uint32_t> p_Indi
     this->Bind();
     m_Ibo = IndexBuffer(p_Indices);
     this->Unbind();
+
+    if(p_Indices.size() == 0){
+        m_DoesHaveIndices = false;
+    }
+    else{
+        m_DoesHaveIndices = true;
+    }
 }
 
 VertexArray::VertexArray(const VertexBuffer& p_Vbo, const IndexBuffer& p_Ibo){

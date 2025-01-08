@@ -46,6 +46,11 @@ VertexBuffer::VertexBuffer(std::span<float> p_Vertices){
     this->WriteData(p_Vertices);
 }
 
+VertexBuffer::VertexBuffer(std::span<Vertex> p_Vertices){
+    glGenBuffers(1, &m_VboID);
+    WriteData(p_Vertices);
+}
+
 VertexBuffer::~VertexBuffer(){
     this->Unbind();
 }
@@ -134,5 +139,9 @@ void VertexBuffer::WriteData(std::span<float> p_Vertices){
 
     this->Bind();
     glBufferData(GL_ARRAY_BUFFER, p_Vertices.size_bytes(), p_Vertices.data(), GL_STATIC_DRAW);
-    // this->Unbind();
+}
+
+void VertexBuffer::WriteData(std::span<Vertex> p_Vertices){
+    this->Bind();
+    glBufferData(GL_ARRAY_BUFFER, p_Vertices.size() * sizeof(Vertex), &p_Vertices[0], GL_STATIC_DRAW);
 }

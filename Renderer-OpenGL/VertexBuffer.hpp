@@ -4,7 +4,7 @@
 #include <span>
 #include <vector>
 #include <string>
-
+#include <glm/glm.hpp>
 
 //! @note Specifying vertex attribute
 
@@ -13,6 +13,7 @@ enum class VertexAttributeType : uint8_t {
     FLOAT, FLOAT2, FLOAT3, FLOAT4,
     MAT3, MAT4,
     INT, INT2, INT3, INT4,
+    UINT, UINT32, UINT64,
     BOOL
 };
 
@@ -28,7 +29,9 @@ static uint32_t VertexAttributeByteSize(VertexAttributeType Type){
     case VertexAttributeType::INT:          return 4;
     case VertexAttributeType::INT2:         return 4 * 2;
     case VertexAttributeType::INT3:         return 4 * 3;
-    case VertexAttributeType::INT4:         return 4 * 4;
+    case VertexAttributeType::UINT:         return 4;
+    case VertexAttributeType::UINT32:       return 4;
+    case VertexAttributeType::UINT64:       return 4;
     case VertexAttributeType::BOOL:         return 1;
     default:                                return 0;
     }
@@ -55,6 +58,18 @@ static uint32_t RetrieveVertexAttributeSize(VertexAttributeType Type){
 struct VertexAttributeElement{
     VertexAttributeElement() = default;
     VertexAttributeElement(VertexAttributeType AttributeType, const std::string& Name, bool p_IsNormalized = false) : m_Name(Name), m_AttributeType(AttributeType), m_Offset(0), m_IsNormalized(p_IsNormalized), m_Size(RetrieveVertexAttributeSize(AttributeType)){}
+    
+    /**
+     * @note Does:
+     * @note Because the learnopengl uses offsetof(Vertex, Normal) and offsetof(Vertex, TexCoords) sets the offset
+     * {"ourColor", FLOAT2, false sizeof(Vertex), offsetof(Vertex, Normal)};
+    */
+    // VertexAttributeElement(const std::string& Name, VertexAttributeType AttributeType, bool doTakeCustomType=false, size_t p_CustomSizeInBytes, bool p_IsNormalized = false) :
+    //                         m_Name(Name),
+    //                         m_AttributeType(AttributeType),
+    //                         m_Offset(0),
+    //                         m_IsNormalized(p_IsNormalized),
+    //                         m_Size(RetrieveVertexAttributeSize(AttributeType)){}
 
 
     std::string m_Name;
@@ -117,6 +132,24 @@ private:
     uint32_t m_Stride = 0;
 };
 
+struct Vertex{
+    static constexpr uint32_t MAX_BONE_INFLUENCE = 4;
+    // position
+    glm::vec3 Position;
+    // normal
+    glm::vec3 Normal;
+    // texCoords
+    glm::vec2 TexCoords;
+    // tangent
+    glm::vec3 Tangent;
+    // bitangent
+    glm::vec3 Bitangent;
+    //bone indexes which will influence this vertex
+    int m_BoneIDs[MAX_BONE_INFLUENCE];
+    //weights from each bone
+    float m_Weights[MAX_BONE_INFLUENCE];
+};
+
 /**
     @name VertexBuffer
     @note Buffer that contains all our vertices
@@ -125,6 +158,7 @@ class VertexBuffer{
 public:
     VertexBuffer() = default;
     VertexBuffer(std::span<float> p_Vertices);
+    VertexBuffer(std::span<Vertex> p_Vertices);
     ~VertexBuffer();
 
     void Bind();
@@ -135,6 +169,7 @@ public:
 
 
     void WriteData(std::span<float> p_Vertices);
+    void WriteData(std::span<Vertex> p_Vertices);
 
 private:
     std::vector<float> m_Vertices;

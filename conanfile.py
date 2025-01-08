@@ -22,8 +22,10 @@ class StarterConanRecipe(ConanFile):
     # Putting all of your packages here
     def requirements(self):
         self.requires("glfw/3.4", transitive_headers=True)
+        self.requires("assimp/5.4.3")
         self.requires("glad/0.1.36")
-        self.requires("stb/cci.20240531")
+        # self.requires("stb/cci.20240531")
+        self.requires("stb/cci.20230920")
         self.requires("glm/1.0.1", transitive_headers=True)
         self.requires("fmt/10.2.1", transitive_headers=True)
         self.requires("vulkan-headers/1.3.290.0")
