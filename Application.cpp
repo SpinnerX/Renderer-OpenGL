@@ -259,7 +259,7 @@ int main(){
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    Shader lighting_shader("shaders/model_loading/basic_light.vs", "shaders/model_loading/basic_light.fs");
+    Shader lighting_shader("shaders/tutorials/basic_lighting_0/basic_light.vs", "shaders/tutorials/basic_lighting_0/basic_light.fs");
     Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
 
     // cube vbo, and vao
