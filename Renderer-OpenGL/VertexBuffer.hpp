@@ -121,8 +121,6 @@ private:
             element.m_Offset = offset;
             offset += element.m_Size;
             m_Stride += element.m_Size;
-            fmt::print("offset = {}", offset);
-            fmt::print("Elements.Size = {}\n", element.m_Size);
         }
     }
     
@@ -164,6 +162,10 @@ public:
     void Bind();
     void Unbind();
 
+    uint32_t GetID() const { return m_VboID; }
+
+    std::span<float> GetVertices() const { return m_Vertices; }
+
 
     void SetVertexAttributes(const VertexAttributes& p_VertexAttributesLayout);
 
@@ -172,7 +174,7 @@ public:
     void WriteData(std::span<Vertex> p_Vertices);
 
 private:
-    std::vector<float> m_Vertices;
+    std::span<float> m_Vertices;
     uint32_t m_VboID = -1;
 
     uint32_t m_Index = -1;

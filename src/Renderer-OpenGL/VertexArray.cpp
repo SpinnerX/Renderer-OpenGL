@@ -41,6 +41,7 @@ static std::string ShaderDataTypeToString(VertexAttributeType type){
 
 VertexArray::VertexArray(std::span<float> p_Vertices, std::span<uint32_t> p_Indices){
     glGenVertexArrays(1, &m_VertexArrayID);
+    Bind();
     //! @note Writing our vertices to our vertex buffer
     m_Vbo = VertexBuffer(p_Vertices);
 
@@ -48,17 +49,35 @@ VertexArray::VertexArray(std::span<float> p_Vertices, std::span<uint32_t> p_Indi
     m_Ibo = IndexBuffer(p_Indices);
     this->Unbind();
 
-    if(p_Indices.size() == 0){
-        m_DoesHaveIndices = false;
+    if(p_Vertices.size() == 0 and p_Indices.size() == 0){
+        m_DoesHaveVerticesAndIndices = false;
+        fmt::print("No vertices added to vertex array!\n");
     }
-    else{
-        m_DoesHaveIndices = true;
+
+    m_DoesHaveIndices = true;
+}
+
+VertexArray::VertexArray(std::span<float> p_Vertices){
+    glGenVertexArrays(1, &m_VertexArrayID);
+    m_Vbo = VertexBuffer(p_Vertices);
+    m_DoesHaveIndices = false;
+}
+
+VertexArray::VertexArray(const VertexBuffer* p_Vbo){
+    glGenVertexArrays(1, &m_VertexArrayID);
+    Bind();
+    if(p_Vbo != nullptr){
+        fmt::print("Only taken a vertex buffer with no index buffer!\n");
+        fmt::print("Vbo that was inputted was valid!\n");
     }
+    m_Vbo = *p_Vbo;
+    m_DoesHaveIndices = false;
 }
 
 VertexArray::VertexArray(const VertexBuffer& p_Vbo, const IndexBuffer& p_Ibo){
     m_Vbo = p_Vbo;
 
+    
     this->Bind();
     m_Ibo = p_Ibo;
     this->Unbind();
@@ -72,11 +91,11 @@ void VertexArray::AddVertexBuffer(const VertexBuffer& p_Buffer){
     m_Vbo = p_Buffer;
 }
 
-void VertexArray::Bind(){
+void VertexArray::Bind() const {
     glBindVertexArray(m_VertexArrayID);
 }
 
-void VertexArray::Unbind(){
+void VertexArray::Unbind() const {
     glBindVertexArray(0);
 }
 
@@ -84,6 +103,7 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
     // Bind vertex array
     this->Bind();
     m_Vbo.Bind();
+
     uint32_t m_Index = 0;
 
     const auto& vert_attributes_data = p_VertexAttributesLayout;
@@ -102,6 +122,7 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
             fmt::print("Stride = {}\n", p_VertexAttributesLayout.GetStride());
             fmt::print("IsNormalized = {}\n", (vertex_attribute.m_IsNormalized ? "GL_TRUE" : "GL_FALSE"));
             fmt::print("offset = {}\n", vertex_attribute.m_Offset);
+            fmt::print("\n\n");
             glVertexAttribPointer(m_Index,
                                   RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
                                   VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
@@ -116,7 +137,6 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
         break;
         case VertexAttributeType::FLOAT4:
         {
-            fmt::print("FLOAT4 Executed Case Switch!\n");
             glEnableVertexAttribArray(m_Index);
             glVertexAttribPointer(m_Index,
                                   RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
@@ -136,13 +156,14 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
         case VertexAttributeType::INT4:  
         case VertexAttributeType::BOOL:
         {
-            glEnableVertexAttribArray(m_Index);
+            // glEnableVertexAttribArray(m_Index);
             glVertexAttribIPointer(m_Index,
                 RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
                                   VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
                                   p_VertexAttributesLayout.GetStride(),
                                   (const void*)vertex_attribute.m_Offset
             );
+            glEnableVertexAttribArray(m_Index);
 
             m_Index++;
             break;

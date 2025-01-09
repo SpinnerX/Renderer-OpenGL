@@ -1,4 +1,5 @@
 #include "Renderer-OpenGL/BasicLightObject.hpp"
+#include "Renderer-OpenGL/Renderer.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include <glad/glad.h>
@@ -43,6 +44,104 @@ static void EndFrame(GLFWwindow* Window, uint32_t width, uint32_t height){
     }
 }
 
+void DockspaceWindow(GLFWwindow* window){
+    // READ THIS !!!
+    // TL;DR; this demo is more complicated than what most users you would normally use.
+    // If we remove all options we are showcasing, this demo would become:
+    //     void ShowExampleAppDockSpace()
+    //     {
+    //         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+    //     }
+    // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
+    // In this specific demo, we are not using DockSpaceOverViewport() because:
+    // - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
+    // - (2) we allow the host window to have padding (when opt_padding == true)
+    // - (3) we expose many flags and need a way to have them visible.
+    // - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
+    //      in your code, but we don't here because we allow the window to be floating)
+
+    static bool docking_enabled = true;
+    static bool opt_fullscreen = true;
+    static bool opt_padding = false;
+    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+    // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+    // because it would be confusing to have two docking targets within each others.
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    
+    if (opt_fullscreen){
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+    }
+    else{
+        dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+    }
+
+    // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+    // and handle the pass-thru hole, so we ask Begin() to not render a background.
+    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode){
+        window_flags |= ImGuiWindowFlags_NoBackground;
+    }
+
+    // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+    // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+    // all active windows docked into it will lose their parent and become undocked.
+    // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+    // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+    if (!opt_padding)
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("DockSpace Demo", &docking_enabled, window_flags);
+    if (!opt_padding)
+        ImGui::PopStyleVar();
+
+    if (opt_fullscreen)
+        ImGui::PopStyleVar(2);
+
+    // Submit the DockSpace
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable){
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+    }
+
+    if (ImGui::BeginMenuBar()){
+        if (ImGui::BeginMenu("Options")){
+            // Disabling fullscreen would allow the window to be moved to the front of other windows,
+            // which we can't undo at the moment without finer window depth/z control.
+            ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
+            ImGui::MenuItem("Padding", NULL, &opt_padding);
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingOverCentralNode) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode; }
+            if (ImGui::MenuItem("Flag: NoDockingSplit",         "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingSplit) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit; }
+            if (ImGui::MenuItem("Flag: NoUndocking",            "", (dockspace_flags & ImGuiDockNodeFlags_NoUndocking) != 0))                { dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking; }
+            if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                   { dockspace_flags ^= ImGuiDockNodeFlags_NoResize; }
+            if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar; }
+            if (ImGui::MenuItem("Flag: PassthruCentralNode",    "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) { dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode; }
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Close Dockspace", nullptr, false)){
+                glfwSetWindowShouldClose(window, true);
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
+
+    // ImGui::Begin("Test");
+    // auto fb_id = frame_buffer.GetColorAttachment();
+    // ImGui::Image((void*)fb_id, ImVec2(256.f, 256.f));
+    // ImGui::End();
+
+    ImGui::End();
+}
+
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
@@ -77,6 +176,11 @@ int main(){
 
     glfwMakeContextCurrent(window);
     InputPoll::Initialize(window);
+    bool firstMouse = true;
+
+    // timing
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
 
     // tell GLFW to capture our mouse
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -89,47 +193,47 @@ int main(){
     }
 
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f, 
-         0.5f, -0.5f, -0.5f,  
-         0.5f,  0.5f, -0.5f,  
-         0.5f,  0.5f, -0.5f,  
-        -0.5f,  0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
 
-        -0.5f, -0.5f,  0.5f, 
-         0.5f, -0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f, -0.5f,  0.5f, 
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
 
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f,  0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
-        -0.5f, -0.5f,  0.5f, 
-        -0.5f,  0.5f,  0.5f, 
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f, -0.5f,  
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f, 
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f,  0.5f,  
-         0.5f, -0.5f,  0.5f,  
-        -0.5f, -0.5f,  0.5f, 
-        -0.5f, -0.5f, -0.5f, 
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-        -0.5f,  0.5f, -0.5f, 
-         0.5f,  0.5f, -0.5f,  
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f,  0.5f, -0.5f, 
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
     // Framebuffer frame_buffer = Framebuffer(width, height);
@@ -155,32 +259,37 @@ int main(){
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    ShaderLibrary shader_handler;
+    Shader lighting_shader("shaders/model_loading/basic_light.vs", "shaders/model_loading/basic_light.fs");
+    Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
 
-    shader_handler.Load("shaders/model_loading/intro_lighting.vs", "shaders/model_loading/intro_lighting.fs");
-    shader_handler.Load("shaders/model_loading/model_loading.vs", "shaders/model_loading/model_loading.fs");
+    // cube vbo, and vao
+    VertexBuffer vbo = VertexBuffer(vertices);
 
-    auto shader = shader_handler.Get("model_loading");
-    Model ourModel("assets/backpack/backpack.obj");
+    //! @note This is how to get currently binded vertex buffer id
+    // int current_vbo;
+    // glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
 
-    VertexArray vao = VertexArray(vertices, {});
-    vao.SetVertexAttribute({
-        {VertexAttributeType::FLOAT, "", false}
+    VertexArray cube_vao = VertexArray(&vbo);
+    cube_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aColor", false}
     });
 
+    //! @note How to get the current vao that is binded (used for debugging)
+    // int current_vao;
+    // glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
 
-    BasicLight light(vertices, {});
+    //! @note NOTE TO SELF: IF the cube or primitive does not look right
+    //! @note These vertex attributes have to align to the layouts within the glsl
+    //! @note Layouts like layout(location = 0), layout(location = 1), etc.
+    VertexArray light_cube_vao = VertexArray(&vbo);
+    light_cube_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false}
+    });
 
-    
-    
-    // draw in wireframe
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    bool firstMouse = true;
-
-    // timing
-    float deltaTime = 0.0f;
-    float lastFrame = 0.0f;
+    // lighting
+    glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -190,121 +299,14 @@ int main(){
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-
         //! @note UI-stuff done below
         BeginFrame();
-
-        // READ THIS !!!
-        // TL;DR; this demo is more complicated than what most users you would normally use.
-        // If we remove all options we are showcasing, this demo would become:
-        //     void ShowExampleAppDockSpace()
-        //     {
-        //         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-        //     }
-        // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
-        // In this specific demo, we are not using DockSpaceOverViewport() because:
-        // - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
-        // - (2) we allow the host window to have padding (when opt_padding == true)
-        // - (3) we expose many flags and need a way to have them visible.
-        // - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
-        //      in your code, but we don't here because we allow the window to be floating)
-
-        static bool docking_enabled = true;
-        static bool opt_fullscreen = true;
-        static bool opt_padding = false;
-        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
-        // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-        // because it would be confusing to have two docking targets within each others.
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-        
-        if (opt_fullscreen){
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-            ImGui::SetNextWindowViewport(viewport->ID);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-        }
-        else{
-            dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
-        }
-
-        // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
-        // and handle the pass-thru hole, so we ask Begin() to not render a background.
-        if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode){
-            window_flags |= ImGuiWindowFlags_NoBackground;
-        }
-
-        // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-        // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-        // all active windows docked into it will lose their parent and become undocked.
-        // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-        // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-        if (!opt_padding)
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("DockSpace Demo", &docking_enabled, window_flags);
-        if (!opt_padding)
-            ImGui::PopStyleVar();
-
-        if (opt_fullscreen)
-            ImGui::PopStyleVar(2);
-
-        // Submit the DockSpace
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable){
-            ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-        }
-
-        if (ImGui::BeginMenuBar()){
-            if (ImGui::BeginMenu("Options")){
-                // Disabling fullscreen would allow the window to be moved to the front of other windows,
-                // which we can't undo at the moment without finer window depth/z control.
-                ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
-                ImGui::MenuItem("Padding", NULL, &opt_padding);
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingOverCentralNode) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode; }
-                if (ImGui::MenuItem("Flag: NoDockingSplit",         "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingSplit) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit; }
-                if (ImGui::MenuItem("Flag: NoUndocking",            "", (dockspace_flags & ImGuiDockNodeFlags_NoUndocking) != 0))                { dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking; }
-                if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                   { dockspace_flags ^= ImGuiDockNodeFlags_NoResize; }
-                if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar; }
-                if (ImGui::MenuItem("Flag: PassthruCentralNode",    "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) { dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode; }
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Close Dockspace", nullptr, false)){
-                    glfwSetWindowShouldClose(window, true);
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenuBar();
-        }
-
-        // ImGui::Begin("Test");
-        // auto fb_id = frame_buffer.GetColorAttachment();
-        // ImGui::Image((void*)fb_id, ImVec2(256.f, 256.f));
-        // ImGui::End();
-
-        ImGui::End();
-
+        DockspaceWindow(window);
         EndFrame(window, width, height);
-
-
-
-
-
-
-
 
         if (InputPoll::IsKeyPressed(KEY_ESCAPE)){
             glfwSetWindowShouldClose(window, true);
         }
-
-
         if (InputPoll::IsKeyPressed(KEY_W)){
             camera.ProcessKeyboard(FORWARD, deltaTime);
         }
@@ -320,15 +322,13 @@ int main(){
 
         // UP
         if(InputPoll::IsKeyPressed(KEY_Q)){
+            // UP
             camera.ProcessKeyboard(UP, deltaTime);
         }
-        
-        // DOWN
         if(InputPoll::IsKeyPressed(KEY_E)){
+            // DOWN
             camera.ProcessKeyboard(DOWN, deltaTime);
         }
-
-
         if(InputPoll::IsMousePressed(MOUSE_BUTTON_RIGHT)){
             double xPosIn, yPosIn;
             glfwGetCursorPos(window, &xPosIn, &yPosIn);
@@ -345,15 +345,6 @@ int main(){
             float x_offset = xPosIn;
             float velocity = x_offset * deltaTime;
             camera.ProcessMouseMovement(-velocity, 0.f);
-        }
-
-        if(InputPoll::IsKeyPressed(KEY_E)){
-            double xPosIn, yPosIn;
-            glfwGetCursorPos(window, &xPosIn, &yPosIn);
-
-            float y_offset = yPosIn;
-            float velocity = y_offset * deltaTime;
-            camera.ProcessMouseMovement(0.0f, velocity);
         }
 
         if(InputPoll::IsMousePressed(MOUSE_BUTTON_MIDDLE)){
@@ -378,29 +369,38 @@ int main(){
             camera.ProcessMouseMovement(xoffset, yoffset);
         }
 
-        // render
 
-        // don't forget to enable shader before setting uniforms
-        shader.Bind();
+        //! @note Rendering stuff here
 
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width / (float)height, 0.1f, 100.0f);
+        // be sure to activate shader when setting uniforms/drawing objects
+        lighting_shader.Bind();
+        lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
+        lighting_shader.Set("lightColor", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("lightPos", lightPos);
+        lighting_shader.Set("viewPos", camera.Position);
+
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        shader.Set("projection", projection);
-        shader.Set("view", view);
+        lighting_shader.Set("projection", projection);
+        lighting_shader.Set("view", view);
 
-        // render the loaded model
+        // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-        shader.Set("model", model);
-        ourModel.Draw(shader);
+        lighting_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(cube_vao);
 
-        light.UpdateLocation(camera);
-        // if(!vao.HasIndices()){
-        //     vao.Bind();
-        //     glDrawArrays(GL_TRIANGLES, 0, 36);
-        // }
+        //! @note Drawing lamp object
+        cube_shader.Bind();
+        cube_shader.Set("projection", projection);
+        cube_shader.Set("view", view);
+
+        model = glm::mat4(.5f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+        cube_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(light_cube_vao);
+
+
 
 
         glfwSwapBuffers(window);
@@ -409,10 +409,4 @@ int main(){
 
     glfwTerminate();
     return 0;
-}
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
 }

@@ -4,6 +4,7 @@
 
 IndexBuffer::IndexBuffer(std::span<uint32_t> p_Indices){
     glGenBuffers(1, &m_IndexBufferObjectID);
+    m_Indices = p_Indices;
     WriteData(p_Indices);
 }
 

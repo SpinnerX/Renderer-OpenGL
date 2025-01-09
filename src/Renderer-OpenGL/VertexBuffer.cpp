@@ -41,14 +41,20 @@ static std::string ShaderDataTypeToString(VertexAttributeType type){
 }
 
 VertexBuffer::VertexBuffer(std::span<float> p_Vertices){
-
     glGenBuffers(1, &m_VboID);
-    this->WriteData(p_Vertices);
+
+    if(p_Vertices.size() != 0){
+        m_Vertices = p_Vertices;
+        this->WriteData(p_Vertices);
+    }
 }
 
 VertexBuffer::VertexBuffer(std::span<Vertex> p_Vertices){
     glGenBuffers(1, &m_VboID);
-    WriteData(p_Vertices);
+
+    if(p_Vertices.size() != 0){
+        this->WriteData(p_Vertices);
+    }
 }
 
 VertexBuffer::~VertexBuffer(){
@@ -138,10 +144,11 @@ void VertexBuffer::SetVertexAttributes(const VertexAttributes& p_VertexAttribute
 void VertexBuffer::WriteData(std::span<float> p_Vertices){
 
     this->Bind();
+    fmt::print("VertexBuffer::WriteData::sizeof(vertices) = {}\n", p_Vertices.size_bytes());
     glBufferData(GL_ARRAY_BUFFER, p_Vertices.size_bytes(), p_Vertices.data(), GL_STATIC_DRAW);
 }
 
 void VertexBuffer::WriteData(std::span<Vertex> p_Vertices){
     this->Bind();
-    glBufferData(GL_ARRAY_BUFFER, p_Vertices.size() * sizeof(Vertex), &p_Vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex), p_Vertices.data(), GL_STATIC_DRAW);
 }
