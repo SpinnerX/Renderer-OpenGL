@@ -125,7 +125,6 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
                                   VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
                                   vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
                                   p_VertexAttributesLayout.GetStride() * sizeof(float),
-                                //   (const void*)0
                                   (const void*)(vertex_attribute.m_Offset * sizeof(float))
             );
             glEnableVertexAttribArray(m_Index);

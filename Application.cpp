@@ -259,8 +259,8 @@ int main(){
     // Shader lighting_shader("shaders/tutorials/basic_lighting_maps_2/lighting_map.vs", "shaders/tutorials/basic_lighting_maps_2/lighting_map.fs");
     // Shader lighting_shader("shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.vs", "shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.fs");
     Shader lighting_shader(
-        "shaders/tutorials/basic_lighting_casters_3/spotlight/spotlight.vs", 
-        "shaders/tutorials/basic_lighting_casters_3/spotlight/spotlight.fs"
+        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.vs", 
+        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.fs"
     );
 
     Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
@@ -307,6 +307,26 @@ int main(){
     glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
     std::string light_variable_name = "light";
+
+    glm::vec3 cube_positions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+
+    glm::vec3 point_light_positions[] = {
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
+    };
 
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -399,10 +419,60 @@ int main(){
         //! @note Such as if I want to utilize spotlight, I can change these variables names to {spotlight}.position or something like that
         //! @note This is because since I dont hvae distinguished objects from the different types of lighting
         // lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
-        lighting_shader.Set(fmt::format("{}.position", light_variable_name), camera.Position);
-        lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
-        lighting_shader.Set(fmt::format("{}.cut_off", light_variable_name), (float)glm::cos(glm::radians(12.5)));
-        lighting_shader.Set("viewPos", camera.Position);
+        // lighting_shader.Set(fmt::format("{}.position", light_variable_name), camera.Position);
+        // lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
+        // lighting_shader.Set(fmt::format("{}.cut_off", light_variable_name), (float)glm::cos(glm::radians(12.5)));
+        // lighting_shader.Set("viewPos", camera.Position);
+
+        // lighting_shader.Set("point_lights[0].constant", 1.0f);
+        // directional light
+        lighting_shader.Set("dir_light.direction", {-0.2f, -1.0f, -0.3f});
+        lighting_shader.Set("dir_light.ambient", {0.05f, 0.05f, 0.05f});
+        lighting_shader.Set("dir_light.diffuse", {0.4f, 0.4f, 0.4f});
+        lighting_shader.Set("dir_light.specular", {0.5f, 0.5f, 0.5f});
+        // point light 1
+        lighting_shader.Set("point_lights[0].position", point_light_positions[0]);
+        lighting_shader.Set("point_lights[0].ambient", {0.05f, 0.05f, 0.05f});
+        lighting_shader.Set("point_lights[0].diffuse", {0.8f, 0.8f, 0.8f});
+        lighting_shader.Set("point_lights[0].specular", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("point_lights[0].constant", 1.0f);
+        lighting_shader.Set("point_lights[0].linear", 0.09f);
+        lighting_shader.Set("point_lights[0].quadratic", 0.032f);
+        // point light 2
+        lighting_shader.Set("point_lights[1].position", point_light_positions[1]);
+        lighting_shader.Set("point_lights[1].ambient", {0.05f, 0.05f, 0.05f});
+        lighting_shader.Set("point_lights[1].diffuse", {0.8f, 0.8f, 0.8f});
+        lighting_shader.Set("point_lights[1].specular", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("point_lights[1].constant", 1.0f);
+        lighting_shader.Set("point_lights[1].linear", 0.09f);
+        lighting_shader.Set("point_lights[1].quadratic", 0.032f);
+        // point light 3
+        lighting_shader.Set("point_lights[2].position", point_light_positions[2]);
+        lighting_shader.Set("point_lights[2].ambient", {0.05f, 0.05f, 0.05f});
+        lighting_shader.Set("point_lights[2].diffuse", {0.8f, 0.8f, 0.8f});
+        lighting_shader.Set("point_lights[2].specular", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("point_lights[2].constant", 1.0f);
+        lighting_shader.Set("point_lights[2].linear", 0.09f);
+        lighting_shader.Set("point_lights[2].quadratic", 0.032f);
+        // point light 4
+        lighting_shader.Set("point_lights[3].position", point_light_positions[3]);
+        lighting_shader.Set("point_lights[3].ambient", {0.05f, 0.05f, 0.05f});
+        lighting_shader.Set("point_lights[3].diffuse", {0.8f, 0.8f, 0.8f});
+        lighting_shader.Set("point_lights[3].specular", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("point_lights[3].constant", 1.0f);
+        lighting_shader.Set("point_lights[3].linear", 0.09f);
+        lighting_shader.Set("point_lights[3].quadratic", 0.032f);
+        // spot light
+        lighting_shader.Set("spot_light.position", camera.Position);
+        lighting_shader.Set("spot_light.direction", camera.Front);
+        lighting_shader.Set("spot_light.ambient", {0.0f, 0.0f, 0.0f});
+        lighting_shader.Set("spot_light.diffuse", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("spot_light.specular", {1.0f, 1.0f, 1.0f});
+        lighting_shader.Set("spot_light.constant", 1.0f);
+        lighting_shader.Set("spot_light.linear", 0.09f);
+        lighting_shader.Set("spot_light.quadratic", 0.032f);
+        lighting_shader.Set("spot_light.cut_off", glm::cos(glm::radians(12.5f)));
+        lighting_shader.Set("spot_light.outer_cut_off", glm::cos(glm::radians(15.0f)));
         //! @note Setting the directional lighting to be set to our front camera point to the objects
 
         //! @note Setting our actual shader struct for the lighting-effect
@@ -433,20 +503,48 @@ int main(){
         //! @note APPLYING TEXTURES
         //! @note If I add an editor here are a few things to add related to the diffuse and specular-added textures
         //! @note Add a toggle for enabling which parts of the textures like diffuse or specular to be toggled
-        container_diffuse.Bind();
-        container_specular.Bind(1);
-        Renderer::DrawQuadPrimitive(cube_vao);
 
+        //! @note Generating a bunch of cubes
+        for(uint32_t i = 0; i < 10; i++){
+            glm::mat4 reset_model = glm::mat4(1.0);
+            model = glm::translate(model, cube_positions[i]);
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            lighting_shader.Set("model", model);
+            
+            container_diffuse.Bind();
+            container_specular.Bind(1);
+            Renderer::DrawQuadPrimitive(cube_vao);
+        }
+
+        // container_diffuse.Bind();
+        // container_specular.Bind(1);
+        // Renderer::DrawQuadPrimitive(cube_vao);
+
+        
+        //-----------------------------------------
         //! @note Drawing lamp object
+        //! @note ALl rendering below are for the lighting and the lamps
+        //-----------------------------------------
+
         cube_shader.Bind();
         cube_shader.Set("projection", projection);
         cube_shader.Set("view", view);
 
-        model = glm::mat4(.5f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f));
-        cube_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(light_cube_vao);
+        for(uint32_t i = 0; i < 4; i++){
+            model = glm::mat4(.5f);
+            model = glm::translate(model, point_light_positions[i]);
+            model = glm::scale(model, glm::vec3(0.2f));
+            cube_shader.Set("model", model);
+            Renderer::DrawQuadPrimitive(light_cube_vao);
+        }
+        // model = glm::mat4(.5f);
+        // model = glm::translate(model, lightPos);
+        // model = glm::scale(model, glm::vec3(0.2f));
+        // cube_shader.Set("model", model);
+
+
+        // Renderer::DrawQuadPrimitive(light_cube_vao);
 
 
 
