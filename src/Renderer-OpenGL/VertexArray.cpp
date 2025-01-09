@@ -66,10 +66,7 @@ VertexArray::VertexArray(std::span<float> p_Vertices){
 VertexArray::VertexArray(const VertexBuffer* p_Vbo){
     glGenVertexArrays(1, &m_VertexArrayID);
     Bind();
-    if(p_Vbo != nullptr){
-        fmt::print("Only taken a vertex buffer with no index buffer!\n");
-        fmt::print("Vbo that was inputted was valid!\n");
-    }
+    
     m_Vbo = *p_Vbo;
     m_DoesHaveIndices = false;
 }
@@ -128,8 +125,8 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
                                   VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
                                   vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
                                   p_VertexAttributesLayout.GetStride() * sizeof(float),
-                                  (const void*)0
-                                //   (const void*)vertex_attribute.m_Offset
+                                //   (const void*)0
+                                  (const void*)(vertex_attribute.m_Offset * sizeof(float))
             );
             glEnableVertexAttribArray(m_Index);
             m_Index++;

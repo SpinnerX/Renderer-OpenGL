@@ -192,7 +192,7 @@ int main(){
     }
 
     float vertices[] = {
-        // positions          // normals           // texture coords
+        //              positions            // normals           // texture coords
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
@@ -256,9 +256,13 @@ int main(){
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    // Shader lighting_shader("shaders/tutorials/basic_lighting_0/basic_light.vs", "shaders/tutorials/basic_lighting_0/basic_light.fs");
-    // Shader lighting_shader("shaders/tutorials/basic_material_1/material.vs", "shaders/tutorials/basic_material_1/material.fs");
-    Shader lighting_shader("shaders/tutorials/basic_lighting_maps_2/lighting_map.vs", "shaders/tutorials/basic_lighting_maps_2/lighting_map.fs");
+    // Shader lighting_shader("shaders/tutorials/basic_lighting_maps_2/lighting_map.vs", "shaders/tutorials/basic_lighting_maps_2/lighting_map.fs");
+    // Shader lighting_shader("shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.vs", "shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.fs");
+    Shader lighting_shader(
+        "shaders/tutorials/basic_lighting_casters_3/spotlight/spotlight.vs", 
+        "shaders/tutorials/basic_lighting_casters_3/spotlight/spotlight.fs"
+    );
+
     Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
 
     // cube vbo, and vao
@@ -301,6 +305,8 @@ int main(){
 
     // lighting
     glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+    std::string light_variable_name = "light";
 
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -386,14 +392,28 @@ int main(){
         // be sure to activate shader when setting uniforms/drawing objects
         lighting_shader.Bind();
         // lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
-        lighting_shader.Set("light.position", lightPos);
+        // lighting_shader.Set("light.position", lightPos);
+
+        //! @note Just to NOTE in-case I forget
+        //! @note I just made this into fmt::format so I can make changes to which light I want to use
+        //! @note Such as if I want to utilize spotlight, I can change these variables names to {spotlight}.position or something like that
+        //! @note This is because since I dont hvae distinguished objects from the different types of lighting
+        // lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
+        lighting_shader.Set(fmt::format("{}.position", light_variable_name), camera.Position);
+        lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
+        lighting_shader.Set(fmt::format("{}.cut_off", light_variable_name), (float)glm::cos(glm::radians(12.5)));
         lighting_shader.Set("viewPos", camera.Position);
+        //! @note Setting the directional lighting to be set to our front camera point to the objects
 
         //! @note Setting our actual shader struct for the lighting-effect
 
-        lighting_shader.Set("light.ambient", {0.2f, 0.2f, 0.2f});
-        lighting_shader.Set("light.diffuse", {0.5f, 0.5f, 0.5f}); // darken diffuse light a bit
-        lighting_shader.Set("light.specular", {1.0f, 1.0f, 1.0f}); 
+        lighting_shader.Set(fmt::format("{}.ambient", light_variable_name), {0.1f, 0.1f, 0.1f});
+        lighting_shader.Set(fmt::format("{}.diffuse", light_variable_name), {0.8f, 0.8f, 0.8f});
+        lighting_shader.Set(fmt::format("{}.specular", light_variable_name), {1.0f, 1.0f, 1.0f});
+
+        lighting_shader.Set(fmt::format("{}.constant", light_variable_name),  1.0f);
+        lighting_shader.Set(fmt::format("{}.linear", light_variable_name),    0.09f);
+        lighting_shader.Set(fmt::format("{}.quadratic", light_variable_name), 0.032f);
 
         // lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
         // lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
@@ -411,6 +431,8 @@ int main(){
         lighting_shader.Set("model", model);
 
         //! @note APPLYING TEXTURES
+        //! @note If I add an editor here are a few things to add related to the diffuse and specular-added textures
+        //! @note Add a toggle for enabling which parts of the textures like diffuse or specular to be toggled
         container_diffuse.Bind();
         container_specular.Bind(1);
         Renderer::DrawQuadPrimitive(cube_vao);
