@@ -259,7 +259,8 @@ int main(){
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    Shader lighting_shader("shaders/tutorials/basic_lighting_0/basic_light.vs", "shaders/tutorials/basic_lighting_0/basic_light.fs");
+    // Shader lighting_shader("shaders/tutorials/basic_lighting_0/basic_light.vs", "shaders/tutorials/basic_lighting_0/basic_light.fs");
+    Shader lighting_shader("shaders/tutorials/basic_material_1/material.vs", "shaders/tutorials/basic_material_1/material.fs");
     Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
 
     // cube vbo, and vao
@@ -376,6 +377,18 @@ int main(){
         lighting_shader.Bind();
         lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
         lighting_shader.Set("lightColor", {1.0f, 1.0f, 1.0f});
+
+        //! @note Setting our actual shader struct for the lighting-effect
+
+        lighting_shader.Set("light.ambient", {0.2f, 0.2f, 0.2f});
+        lighting_shader.Set("light.diffuse", {0.5f, 0.5f, 0.5f}); // darken diffuse light a bit
+        lighting_shader.Set("light.specular", {1.0f, 1.0f, 1.0f}); 
+
+        lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
+        lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
+        lighting_shader.Set("material.specular", {0.5f, 0.5f, 0.5f});
+        lighting_shader.Set("material.shininess", static_cast<float>(32.0f));
+
         lighting_shader.Set("lightPos", lightPos);
         lighting_shader.Set("viewPos", camera.Position);
 

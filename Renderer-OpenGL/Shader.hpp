@@ -19,8 +19,8 @@ public:
     void Unbind();
     bool IsLoaded() const;
 
-    void Set(const std::string& name, int p_IntValue);
-    void Set(const std::string& name, float p_IntValue);
+    void Set(const std::string& name, const int& p_IntValue);
+    void Set(const std::string& name, const float& p_FloatValue);
 
     void Set(const std::string& name, const glm::vec2& p_Values);
     void Set(const std::string& name, const glm::vec3& p_Values);

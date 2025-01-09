@@ -119,12 +119,12 @@ int Shader::GetLocation(const std::string& p_Name){
     return glGetUniformLocation(m_ShaderProgramID, p_Name.c_str());
 }
 
-void Shader::Set(const std::string& name, int p_IntValue){
+void Shader::Set(const std::string& name, const int& p_IntValue){
     glUniform1i(GetLocation(name), p_IntValue);
 }
 
-void Shader::Set(const std::string& name, float p_IntValue){
-    glUniform1i(GetLocation(name), p_IntValue);
+void Shader::Set(const std::string& name, const float& p_FloatValue){
+    glUniform1f(GetLocation(name), p_FloatValue);
 }
 
 void Shader::Set(const std::string& name, const glm::vec2& p_Values){
