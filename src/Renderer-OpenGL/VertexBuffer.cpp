@@ -146,6 +146,7 @@ void VertexBuffer::WriteData(std::span<float> p_Vertices){
     this->Bind();
     fmt::print("VertexBuffer::WriteData::sizeof(vertices) = {}\n", p_Vertices.size_bytes());
     glBufferData(GL_ARRAY_BUFFER, p_Vertices.size_bytes(), p_Vertices.data(), GL_STATIC_DRAW);
+    this->Unbind();
 }
 
 void VertexBuffer::WriteData(std::span<Vertex> p_Vertices){

@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include <Renderer-OpenGL/Image.hpp>
 
 class Texture2D{
 public:
@@ -12,10 +11,9 @@ public:
     //! @note I am setting this as a default that can also still be set
     void Bind(int p_TextureIndex=0x84C0);
     void Unbind();
-    bool IsTextureLoaded() const { return m_ImageData.IsImageLoaded(); }
 
-    uint32_t GetTextureID() { return m_TextureID; }
+    uint32_t GetID() const { return m_TextureID; }
+
 private:
-    Image m_ImageData;
-    unsigned int m_TextureID;
+    uint32_t m_TextureID;
 };

@@ -1,7 +1,5 @@
-#include "Renderer-OpenGL/BasicLightObject.hpp"
-#include "Renderer-OpenGL/Renderer.hpp"
-#include "VertexArray.hpp"
-#include "VertexBuffer.hpp"
+#include <Renderer-OpenGL/Renderer.hpp>
+#include <Renderer-OpenGL/Shader.hpp>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -11,7 +9,6 @@
 
 #include <Renderer-OpenGL/Camera.hpp>
 #include <Renderer-OpenGL/InputPoll.hpp>
-#include <Renderer-OpenGL/Model.hpp>
 
 #include <imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
@@ -169,7 +166,8 @@ int main(){
     // --------------------
     GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Renderer", NULL, NULL);
     if (window == NULL){
-        std::cout << "Failed to create GLFW window" << std::endl;
+        // std::cout << "Failed to create GLFW window" << std::endl;
+        fmt::print("GLFW ERROR: Failed to create GLFW window!\n");
         glfwTerminate();
         return -1;
     }
@@ -188,52 +186,54 @@ int main(){
     // glad: load all OpenGL function pointers
     // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        // std::cout << "Failed to initialize GLAD" << std::endl;
+        fmt::print("GLAD ERROR: Failed to initialize GLAD!\n");
         return -1;
     }
 
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        // positions          // normals           // texture coords
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
 
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
     // Framebuffer frame_buffer = Framebuffer(width, height);
@@ -252,15 +252,13 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
-
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
     // Shader lighting_shader("shaders/tutorials/basic_lighting_0/basic_light.vs", "shaders/tutorials/basic_lighting_0/basic_light.fs");
-    Shader lighting_shader("shaders/tutorials/basic_material_1/material.vs", "shaders/tutorials/basic_material_1/material.fs");
+    // Shader lighting_shader("shaders/tutorials/basic_material_1/material.vs", "shaders/tutorials/basic_material_1/material.fs");
+    Shader lighting_shader("shaders/tutorials/basic_lighting_maps_2/lighting_map.vs", "shaders/tutorials/basic_lighting_maps_2/lighting_map.fs");
     Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
 
     // cube vbo, and vao
@@ -270,10 +268,13 @@ int main(){
     // int current_vbo;
     // glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
 
+    //! @note These are two different cubes
+    //! @note In OpenGL the idea is to have each vertex array per cube (based on this example).
     VertexArray cube_vao = VertexArray(&vbo);
     cube_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPos", false},
-        {VertexAttributeType::FLOAT3, "aColor", false}
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
     });
 
     //! @note How to get the current vao that is binded (used for debugging)
@@ -286,8 +287,17 @@ int main(){
     VertexArray light_cube_vao = VertexArray(&vbo);
     light_cube_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPos", false},
-        {VertexAttributeType::FLOAT3, "aNormal", false}
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
     });
+
+    Texture2D container_diffuse = Texture2D("assets/container_diffuse.png");
+    Texture2D container_specular = Texture2D("assets/container_specular.png");
+    
+    lighting_shader.Bind();
+    lighting_shader.Set("material.diffuse", 0);
+    lighting_shader.Set("material.specular", 1);
+    lighting_shader.Unbind();
 
     // lighting
     glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -375,8 +385,9 @@ int main(){
 
         // be sure to activate shader when setting uniforms/drawing objects
         lighting_shader.Bind();
-        lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
-        lighting_shader.Set("lightColor", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
+        lighting_shader.Set("light.position", lightPos);
+        lighting_shader.Set("viewPos", camera.Position);
 
         //! @note Setting our actual shader struct for the lighting-effect
 
@@ -384,13 +395,10 @@ int main(){
         lighting_shader.Set("light.diffuse", {0.5f, 0.5f, 0.5f}); // darken diffuse light a bit
         lighting_shader.Set("light.specular", {1.0f, 1.0f, 1.0f}); 
 
-        lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
-        lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
-        lighting_shader.Set("material.specular", {0.5f, 0.5f, 0.5f});
+        // lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
+        // lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
+        // lighting_shader.Set("material.specular", {0.5f, 0.5f, 0.5f});
         lighting_shader.Set("material.shininess", static_cast<float>(32.0f));
-
-        lighting_shader.Set("lightPos", lightPos);
-        lighting_shader.Set("viewPos", camera.Position);
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -398,8 +406,13 @@ int main(){
         lighting_shader.Set("view", view);
 
         // world transformation
+        // render cube
         glm::mat4 model = glm::mat4(1.0f);
         lighting_shader.Set("model", model);
+
+        //! @note APPLYING TEXTURES
+        container_diffuse.Bind();
+        container_specular.Bind(1);
         Renderer::DrawQuadPrimitive(cube_vao);
 
         //! @note Drawing lamp object

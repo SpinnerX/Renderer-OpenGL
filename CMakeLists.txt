@@ -11,7 +11,6 @@ build_application(
     src/Renderer-OpenGL/VertexArray.cpp
     src/Renderer-OpenGL/Framebuffer.cpp
     src/Renderer-OpenGL/stb_image.cpp
-    src/Renderer-OpenGL/Image.cpp
     src/Renderer-OpenGL/Texture2D.cpp
     src/Renderer-OpenGL/BasicLightObject.cpp
     src/Renderer-OpenGL/Camera.cpp

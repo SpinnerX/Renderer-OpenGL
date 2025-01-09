@@ -14,8 +14,8 @@ Framebuffer::Framebuffer(uint32_t Width, uint32_t Heigh, FramebufferAttributes f
 
     m_ColorAttachmentTexture = Texture2D(800, 600);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachmentTexture.GetTextureID(), 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_ColorAttachmentTexture.GetTextureID(), 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachmentTexture.GetID(), 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_ColorAttachmentTexture.GetID(), 0);
 
     Unbind();
 }
