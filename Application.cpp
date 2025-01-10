@@ -14,11 +14,11 @@
 #include <Renderer-OpenGL/Camera.hpp>
 #include <Renderer-OpenGL/InputPoll.hpp>
 
-#include <imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <Renderer-OpenGL/Framebuffer.hpp>
-
+// #include <imgui.h>
+#include <imgui.h>
 static void ImGuiLayoutColorModification(){
     auto& colors = ImGui::GetStyle().Colors; // @note Colors is ImVec4
 		
@@ -194,6 +194,85 @@ void DockspaceWindow(GLFWwindow* window, int Width, int Height, Framebuffer& fra
     ImGui::End();
 }
 
+namespace ImGui{
+    //! @note We need to see if this works
+    //! @note Because imgui implements this but the header file for some reason does not contain this implementation...
+    void PushMultiItemsWidths(int components, float w_full);
+};
+
+static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_value = 0.f){
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::PushID(Tag.c_str());
+
+    float columnWidth = 100.0f;
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", Tag.c_str());
+    ImGui::NextColumn();
+
+    ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("X")){
+        Position.x = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    ImGui::DragFloat("##X", &Position.x, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+
+    // Setting up for the Y button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2, 0.7f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("Y")){
+        Position.y = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Y", &Position.y, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // Setting up for the Z button
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1, 0.25f, 0.8f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    if(ImGui::Button("Z")){
+        Position.z = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::DragFloat("##Z", &Position.z, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(1);
+
+    ImGui::PopID();
+
+
+
+}
+
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
@@ -291,6 +370,7 @@ int main(){
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
+    
     // Framebuffer frame_buffer = Framebuffer(width, height);
 
     ImGui::CreateContext();
@@ -338,6 +418,8 @@ int main(){
         {VertexAttributeType::FLOAT3, "aNormal", false},
         {VertexAttributeType::FLOAT2, "aTexCoords", false}
     });
+
+    glm::vec3 cube1_position = {0.f, 0.f, 0.f};
 
     //! @note How to get the current vao that is binded (used for debugging)
     // int current_vao;
@@ -390,6 +472,7 @@ int main(){
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
+    /*
     float cubeVertices[] = {
         // positions          // texture Coords
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -433,6 +516,64 @@ int main(){
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+    */
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float planeVertices[] = {
+        // positions            // normals         // texcoords
+         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+        -10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+
+         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+         10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,  10.0f, 10.0f
+    };
+
+    float cubeVertices[] = {
+        // positions          // normals
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
     float skyboxVertices[] = {
         // positions          
@@ -493,6 +634,19 @@ int main(){
 
 
 
+
+    //! @note Setting up platform object
+    VertexBuffer platform_vbo = VertexBuffer(planeVertices);
+    VertexArray platform_vao = VertexArray(&platform_vbo);
+    platform_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
+    });
+
+    Texture2D platform_texture = Texture2D("assets/wood.png");
+
+    glm::vec3 platform_position = {0.0f, 1.10f, 0.0f};
 
 
 
@@ -556,7 +710,7 @@ int main(){
 
     auto cubemap_shader = ShaderLibrary::GetShader("cubemap");
     cubemap_shader.Bind();
-    cubemap_shader.Set("texture1", 0);
+    cubemap_shader.Set("skybox", 0);
 
     auto skybox_shader = ShaderLibrary::GetShader("skybox");
     skybox_shader.Bind();
@@ -590,8 +744,6 @@ int main(){
         if (InputPoll::IsKeyPressed(KEY_D)){
             camera.ProcessKeyboard(RIGHT, deltaTime);
         }
-
-        // UP
         if(InputPoll::IsKeyPressed(KEY_Q)){
             // UP
             camera.ProcessKeyboard(UP, deltaTime);
@@ -600,30 +752,51 @@ int main(){
             // DOWN
             camera.ProcessKeyboard(DOWN, deltaTime);
         }
-        if(InputPoll::IsMousePressed(MOUSE_BUTTON_RIGHT)){
-            double xPosIn, yPosIn;
-            glfwGetCursorPos(window, &xPosIn, &yPosIn);
 
-            float x_offset = xPosIn;
-            float velocity = x_offset * deltaTime;
-            camera.ProcessMouseMovement(velocity, 0.f);
+        //! @note Press shift key to move using the mouse to rotate around
+        if(InputPoll::IsKeyPressed(KEY_LEFT_SHIFT)){
+            if(InputPoll::IsMousePressed(MOUSE_BUTTON_RIGHT)){
+                double xPosIn, yPosIn;
+                glfwGetCursorPos(window, &xPosIn, &yPosIn);
+
+                float x_offset = xPosIn;
+                float velocity = x_offset * deltaTime;
+                camera.ProcessMouseMovement(velocity, 0.f);
+            }
+
+            if(InputPoll::IsMousePressed(MOUSE_BUTTON_LEFT)){
+                double xPosIn, yPosIn;
+                glfwGetCursorPos(window, &xPosIn, &yPosIn);
+
+                float x_offset = xPosIn;
+                float velocity = x_offset * deltaTime;
+                camera.ProcessMouseMovement(-velocity, 0.f);
+            }
         }
+        // if(InputPoll::IsMousePressed(MOUSE_BUTTON_RIGHT)){
+        //     double xPosIn, yPosIn;
+        //     glfwGetCursorPos(window, &xPosIn, &yPosIn);
 
-        if(InputPoll::IsMousePressed(MOUSE_BUTTON_LEFT)){
-            double xPosIn, yPosIn;
-            glfwGetCursorPos(window, &xPosIn, &yPosIn);
+        //     float x_offset = xPosIn;
+        //     float velocity = x_offset * deltaTime;
+        //     camera.ProcessMouseMovement(velocity, 0.f);
+        // }
 
-            float x_offset = xPosIn;
-            float velocity = x_offset * deltaTime;
-            camera.ProcessMouseMovement(-velocity, 0.f);
-        }
+        // if(InputPoll::IsMousePressed(MOUSE_BUTTON_LEFT)){
+        //     double xPosIn, yPosIn;
+        //     glfwGetCursorPos(window, &xPosIn, &yPosIn);
+
+        //     float x_offset = xPosIn;
+        //     float velocity = x_offset * deltaTime;
+        //     camera.ProcessMouseMovement(-velocity, 0.f);
+        // }
 
         if(InputPoll::IsMousePressed(MOUSE_BUTTON_MIDDLE)){
             double xPosIn, yPosIn;
             glfwGetCursorPos(window, &xPosIn, &yPosIn);
             
-            float xPos = static_cast<float>(xPosIn);
-            float yPos = static_cast<float>(xPosIn);
+            float xPos = static_cast<float>(xPosIn) * deltaTime;
+            float yPos = static_cast<float>(xPosIn) * deltaTime;
 
             if (firstMouse){
                 lastX = xPos;
@@ -637,7 +810,9 @@ int main(){
             lastX = xPos;
             lastY = yPos;
 
-            camera.ProcessMouseMovement(xoffset, yoffset);
+            float newYPOS = yPos * deltaTime;
+
+            camera.ProcessMouseMovement(0.f, newYPOS);
         }
 
 
@@ -740,7 +915,7 @@ int main(){
         lighting_shader.Set("projection", projection);
         lighting_shader.Set("view", view);
 
-        // world transformation
+        // world transformations
         // render cube
         glm::mat4 model = glm::mat4(1.0f);
         lighting_shader.Set("model", model);
@@ -750,22 +925,48 @@ int main(){
         //! @note Add a toggle for enabling which parts of the textures like diffuse or specular to be toggled
 
         //! @note Generating a bunch of cubes
+        /*
         for(uint32_t i = 0; i < 10; i++){
             glm::mat4 reset_model = glm::mat4(1.0);
             model = glm::translate(model, cube_positions[i]);
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            lighting_shader.Bind();
             lighting_shader.Set("model", model);
-            
+            //! @note IF you want specific objects to show reflections.
+            //! @note YOU must specifically bind those specific shaders to those objects.
+            //! @note In this example I choose to set our cubes to use reflections off of the cubemap
+            // cubemap_shader.Bind();
+            // cubemap_shader.Set("model", model);
             container_diffuse.Bind();
             container_specular.Bind(1);
             Renderer::DrawQuadPrimitive(cube_vao);
+            container_diffuse.Unbind();
+            container_specular.Unbind();
         }
+        */
 
-        // container_diffuse.Bind();
-        // container_specular.Bind(1);
-        // Renderer::DrawQuadPrimitive(cube_vao);
-
+        //! @note Calling this cube1
+        lighting_shader.Bind();
+        model = glm::translate(model, cube1_position);
+        lighting_shader.Set("model", model);
+        container_diffuse.Bind();
+        container_specular.Bind(1);
+        Renderer::DrawQuadPrimitive(cube_vao);
+        container_diffuse.Unbind();
+        container_specular.Unbind();
+        lighting_shader.Unbind();
+        
+        //! @note Rendering platform
+        lighting_shader.Bind();
+        platform_texture.Bind();
+        // lighting_shader.Set("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, platform_position);
+        // lighting_shader.Set("projection", projection);
+        lighting_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(platform_vao);
+        lighting_shader.Unbind();
         
         //-----------------------------------------
         //! @note Drawing lamp object
@@ -775,6 +976,7 @@ int main(){
         cube_shader.Bind();
         cube_shader.Set("projection", projection);
         cube_shader.Set("view", view);
+        // cube_shader.Set("cameraPos", camera.Position);
 
         for(uint32_t i = 0; i < 4; i++){
             model = glm::mat4(.5f);
@@ -783,12 +985,23 @@ int main(){
             cube_shader.Set("model", model);
             Renderer::DrawQuadPrimitive(light_cube_vao);
         }
+        cube_shader.Unbind();
 
 
 
 
+        // drawing cubemap stuff
+        cubemap_shader.Bind();
+        cubemap_shader.Set("model", model);
+        cubemap_shader.Set("view", view);
+        cubemap_shader.Set("projection", projection);
+        cubemap_shader.Set("cameraPos", camera.Position);
+        cube_vao.Bind();
+        cubemap_texture.Bind();
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        cube_vao.Unbind();
 
-
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //! @note Rendering skybox
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -803,6 +1016,7 @@ int main(){
         cubemap_texture.Bind();
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthFunc(GL_LESS);
+        skybox_vao.Unbind();
 
         frame_buffer.Unbind();
 
@@ -812,8 +1026,18 @@ int main(){
 
         //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
-        DockspaceWindow(window, width, height, frame_buffer, [](){
+        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position](){
             ImGui::Begin("Properties Panel");
+            
+            ImGui::Begin("Platform Properties");
+            
+            
+            //! @note TODO: Eventually have this be easily modifyable by not specifying the name of transforms they are associated with
+            //! @note Rather just call transform and make this better
+            DrawVec3UI("platform", platform_position);
+            DrawVec3UI("cube1", cube1_position);
+            ImGui::End();
+
             ImGui::End();
         });
         //! @note EndFrame ends per frame for entire imgui setup

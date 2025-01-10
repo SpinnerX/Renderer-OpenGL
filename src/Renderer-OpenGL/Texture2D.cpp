@@ -85,5 +85,7 @@ void Texture2D::Bind(int p_TextureIndex){
 }
 
 void Texture2D::Unbind(){
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    // glDisable(GL_TEXTURE_2D);
 }
