@@ -63,8 +63,8 @@ Texture2D::Texture2D(uint32_t Width, uint32_t Height, bool attachBothDepthAndSte
     glBindTexture(GL_TEXTURE_2D, m_TextureID);
 
     if(attachBothDepthAndStencile){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, 
-            GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, Width, Height, 0, 
+            GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
     }
     else{
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);

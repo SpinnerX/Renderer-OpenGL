@@ -24,6 +24,7 @@ public:
 
     void SetVertexAttribute(const VertexAttributes& p_VertexAttributesLayout);
 
+    void SetVertexAttributeCustomized(const VertexAttributes& p_VertexAttributesLayout);
     void WriteData(std::span<float> p_Vertices, std::span<float> p_Indices);
 
     bool HasIndices() const { return m_DoesHaveIndices; }

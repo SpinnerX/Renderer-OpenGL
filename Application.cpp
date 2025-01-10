@@ -1,5 +1,6 @@
 #include <Renderer-OpenGL/Renderer.hpp>
 #include <Renderer-OpenGL/Shader.hpp>
+#include <functional>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -15,12 +16,48 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <Renderer-OpenGL/Framebuffer.hpp>
 
+static void ImGuiLayoutColorModification(){
+    auto& colors = ImGui::GetStyle().Colors; // @note Colors is ImVec4
+		
+		colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
+
+		// Headers
+		colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		
+		
+		// Buttons
+		colors[ImGuiCol_Button] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_ButtonHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_ButtonActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+
+		// Frame BG
+		colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
+		colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+
+
+		// Tabs
+		colors[ImGuiCol_Tab] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_TabHovered] = ImVec4{ 0.38f, 0.3805f, 0.381f, 1.0f };
+		colors[ImGuiCol_TabActive] = ImVec4{ 0.28f, 0.2805f, 0.281f, 1.0f };
+		colors[ImGuiCol_TabUnfocused] = ImVec4{ 0.15f, 0.1505f, 0.15f, 1.0f };
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		
+		// Titles
+		colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.15f, 1.0f };
+		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.1f, 0.150f, 0.951f, 1.0f };
+}
 
 static void BeginFrame(){
     // Begin Imgui Frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    
 }
 
 static void EndFrame(GLFWwindow* Window, uint32_t width, uint32_t height){
@@ -41,7 +78,7 @@ static void EndFrame(GLFWwindow* Window, uint32_t width, uint32_t height){
     }
 }
 
-void DockspaceWindow(GLFWwindow* window){
+void DockspaceWindow(GLFWwindow* window, int Width, int Height, Framebuffer& frame_buffer, const std::function<void()>& p_UpdateUI){
     // READ THIS !!!
     // TL;DR; this demo is more complicated than what most users you would normally use.
     // If we remove all options we are showcasing, this demo would become:
@@ -131,10 +168,25 @@ void DockspaceWindow(GLFWwindow* window){
         ImGui::EndMenuBar();
     }
 
-    // ImGui::Begin("Test");
-    // auto fb_id = frame_buffer.GetColorAttachment();
-    // ImGui::Image((void*)fb_id, ImVec2(256.f, 256.f));
-    // ImGui::End();
+    // Before we render we add render style
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+    ImGui::Begin("Viewport");
+
+    //! @note This is to ensure that we are resizing our framebuffer to fit our window-resized event
+    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
+    // fmt::print("viewportPanelSize.x = {} and viewportPanelSize.y = {}\n", viewportPanelSize.x, viewportPanelSize.y);
+    if(Width != viewportPanelSize.x and Height != viewportPanelSize.y and viewportPanelSize.x > 0 and viewportPanelSize.y > 0){
+        frame_buffer.OnViewportResize((uint32_t)Width, (uint32_t)Height);
+    }
+    // if(Width != )
+
+    auto fb_id = frame_buffer.GetColorAttachmentID();
+    ImGui::Image((void*)fb_id, ImVec2(Width, Height));
+
+    p_UpdateUI();
+    ImGui::End();
+    ImGui::PopStyleVar();
 
     ImGui::End();
 }
@@ -147,8 +199,8 @@ int main(){
     // camera
     Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
     // settings
-    const unsigned int width = 800;
-    const unsigned int height = 600;
+    const unsigned int width = 1800;
+    const unsigned int height = 820;
     float lastX = width / 2.0f;
     float lastY = height / 2.0f;
     // glfw: initialize and configure
@@ -248,6 +300,9 @@ int main(){
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
+
+    // Setting custom dark themed to imgui
+    ImGuiLayoutColorModification();
     
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
@@ -328,18 +383,18 @@ int main(){
         glm::vec3( 0.0f,  0.0f, -3.0f)
     };
 
+
+    //! @note Configuring Framebuffers
+    Framebuffer frame_buffer = Framebuffer(width, height);
+
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        frame_buffer.Bind();
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        //! @note UI-stuff done below
-        BeginFrame();
-        DockspaceWindow(window);
-        EndFrame(window, width, height);
 
         if (InputPoll::IsKeyPressed(KEY_ESCAPE)){
             glfwSetWindowShouldClose(window, true);
@@ -538,14 +593,16 @@ int main(){
             cube_shader.Set("model", model);
             Renderer::DrawQuadPrimitive(light_cube_vao);
         }
-        // model = glm::mat4(.5f);
-        // model = glm::translate(model, lightPos);
-        // model = glm::scale(model, glm::vec3(0.2f));
-        // cube_shader.Set("model", model);
 
+        frame_buffer.Unbind();
 
-        // Renderer::DrawQuadPrimitive(light_cube_vao);
-
+        //! @note OnUI Update. This should be done after be bind our frame buffer to our scene
+        BeginFrame();
+        DockspaceWindow(window, width, height, frame_buffer, [](){
+            ImGui::Begin("Properties Panel");
+            ImGui::End();
+        });
+        EndFrame(window, width, height);
 
 
 

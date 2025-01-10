@@ -52,6 +52,7 @@ private:
 //! @note Used as our lookup for all our loaded shaders the renderer will utilize
 class ShaderLibrary{
 public:
+    ShaderLibrary();
     //! @note Add shader to the library
     //! @note Add shader and a custom shader name to the associated shader
     void Add(const Shader& p_Shader);
@@ -62,5 +63,6 @@ public:
     Shader Load(const std::string& p_VertShader, const std::string& p_FragShader);
 
 private:
+    static ShaderLibrary* s_CurrentShaderLibraryInstance;
     std::unordered_map<std::string, Shader> m_ShaderLibs;
 };

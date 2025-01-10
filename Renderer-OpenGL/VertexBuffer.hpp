@@ -58,6 +58,14 @@ static uint32_t RetrieveVertexAttributeSize(VertexAttributeType Type){
 struct VertexAttributeElement{
     VertexAttributeElement() = default;
     VertexAttributeElement(VertexAttributeType AttributeType, const std::string& Name, bool p_IsNormalized = false) : m_Name(Name), m_AttributeType(AttributeType), m_Offset(0), m_IsNormalized(p_IsNormalized), m_Size(RetrieveVertexAttributeSize(AttributeType)){}
+    VertexAttributeElement(VertexAttributeType AttributeType, const std::string& Name, bool p_IsCustomType, size_t p_CustomSizeof, bool p_IsNormalized = false) :
+                          m_Name(Name),
+                          m_AttributeType(AttributeType),
+                          m_IsCustomOffsetEnabled(p_IsCustomType),
+                          m_CustomOffset(p_CustomSizeof),
+                          m_Offset(0),
+                          m_IsNormalized(p_IsNormalized),
+                          m_Size(RetrieveVertexAttributeSize(AttributeType)){}
     
     /**
      * @note Does:
@@ -71,10 +79,18 @@ struct VertexAttributeElement{
     //                         m_IsNormalized(p_IsNormalized),
     //                         m_Size(RetrieveVertexAttributeSize(AttributeType)){}
 
+    /*
+    Doing: glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    SetVertexAttribute({
+        {FLOAT3, "aMesh", true, sizeof(Vertex), false}
+    });
+    */
 
     std::string m_Name;
     VertexAttributeType m_AttributeType;
     uint32_t m_Offset;
+    bool m_IsCustomOffsetEnabled=false;
+    size_t m_CustomOffset; // handles custom sizes like: sizeof(Vertex)
     uint32_t m_Size; // size of the buffer
     bool m_IsNormalized = false;
 };

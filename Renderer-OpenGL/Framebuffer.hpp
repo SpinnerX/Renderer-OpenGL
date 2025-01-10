@@ -22,7 +22,7 @@ struct FramebufferAttributes{
 class Framebuffer{
 public:
     Framebuffer() = default;
-    Framebuffer(uint32_t Width, uint32_t Height, FramebufferAttributes fb_attribute = {});
+    Framebuffer(uint32_t Width, uint32_t Height);
     ~Framebuffer();
     
     void Bind();
@@ -30,13 +30,14 @@ public:
 
     void OnViewportResize(uint32_t Width, uint32_t Height);
 
-    uint32_t GetColorAttachment() { return m_ColorAttachment; }
-    uint32_t GetDepthAttachment() { return m_DepthAttachment; }
-
     uint32_t GetFramebufferID() { return m_FramebufferID; }
 
+    uint32_t GetColorAttachmentID() { return m_ColorAttachment; }
+    uint32_t GetDepthAttachmentID() { return m_DepthAttachment; }
+
 private:
-    void InitializeAttachments();
+    void OnCreate(uint32_t Width, uint32_t Height);
+
 private:
     uint32_t m_FramebufferID = -1;
 
@@ -44,6 +45,7 @@ private:
 
     uint32_t m_DepthAttachment = -1;
 
-    Texture2D m_ColorAttachmentTexture;
-    Texture2D m_DepthAttachmentTexture;
+    // Texture2D m_ColorAttachment;
+
+    // uint32_t m_RenderBufferObject;
 };

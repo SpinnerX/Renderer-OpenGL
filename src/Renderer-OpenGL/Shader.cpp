@@ -11,6 +11,7 @@
 #include <sstream>
 using namespace fmt;
 
+ShaderLibrary* ShaderLibrary::s_CurrentShaderLibraryInstance = nullptr;
 
 static int RetrieveShaderType(Shader_t ShaderStageType){
     if(ShaderStageType == Shader_t::VERTEX) return GL_VERTEX_SHADER;
@@ -149,6 +150,10 @@ void Shader::Set(const std::string& name, const glm::mat3& p_Values){
 
 void Shader::Set(const std::string& name, const glm::mat4& p_Values){
     glUniformMatrix4fv(GetLocation(name), 1, false, glm::value_ptr(p_Values));
+}
+
+ShaderLibrary::ShaderLibrary(){
+    s_CurrentShaderLibraryInstance = this;
 }
 
 std::string Shader::GetShaderName() const{

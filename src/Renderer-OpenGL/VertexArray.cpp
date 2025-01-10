@@ -172,6 +172,112 @@ void VertexArray::SetVertexAttribute(const VertexAttributes& p_VertexAttributesL
     this->Unbind();
 }
 
+void VertexArray::SetVertexAttributeCustomized(const VertexAttributes& p_VertexAttributesLayout){
+    // Bind vertex array
+    this->Bind();
+    m_Vbo.Bind();
+
+    uint32_t m_Index = 0;
+
+    const auto& vert_attributes_data = p_VertexAttributesLayout;
+
+    for(const auto& vertex_attribute : vert_attributes_data.GetElements()){
+        switch (vertex_attribute.m_AttributeType){
+        case VertexAttributeType::NONE:  
+        case VertexAttributeType::FLOAT: 
+        case VertexAttributeType::FLOAT2:
+        case VertexAttributeType::FLOAT3:
+        {
+            // fmt::print("FLOAT3 Executed Case Switch!\n");
+            fmt::print("Index = {}\n", m_Index);
+            fmt::print("Attribute Size = {}\n", RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType));
+            fmt::print("Type = {}\n", ShaderDataTypeToString(vertex_attribute.m_AttributeType));
+            fmt::print("Stride = {}\n", p_VertexAttributesLayout.GetStride());
+            fmt::print("IsNormalized = {}\n", (vertex_attribute.m_IsNormalized ? "GL_TRUE" : "GL_FALSE"));
+            fmt::print("offset = {}\n", vertex_attribute.m_Offset);
+            fmt::print("\n\n");
+
+            if(vertex_attribute.m_IsCustomOffsetEnabled){
+                glVertexAttribPointer(m_Index,
+                                  RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+                                  VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+                                  vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
+                                  vertex_attribute.m_CustomOffset,
+                                  (const void*)(vertex_attribute.m_Offset * sizeof(float))
+                );
+            }
+            else{
+                glVertexAttribPointer(m_Index,
+                                  RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+                                  VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+                                  vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
+                                  p_VertexAttributesLayout.GetStride() * sizeof(float),
+                                  (const void*)(vertex_attribute.m_Offset * sizeof(float))
+                );
+            }
+
+            // glVertexAttribPointer(m_Index,
+            //                       RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+            //                       VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+            //                       vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
+            //                       p_VertexAttributesLayout.GetStride() * sizeof(float),
+            //                       (const void*)(vertex_attribute.m_Offset * sizeof(float))
+            // );
+            glEnableVertexAttribArray(m_Index);
+            m_Index++;
+        }
+        break;
+        case VertexAttributeType::FLOAT4:
+        {
+            glEnableVertexAttribArray(m_Index);
+            glVertexAttribPointer(m_Index,
+                                  RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+                                  VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+                                  vertex_attribute.m_IsNormalized ? GL_TRUE : GL_FALSE,
+                                  p_VertexAttributesLayout.GetStride(),
+                                  (const void*)vertex_attribute.m_Offset
+            );
+            m_Index++;
+        }
+        break;
+        case VertexAttributeType::MAT3:  
+        case VertexAttributeType::MAT4:  
+        case VertexAttributeType::INT:   
+        case VertexAttributeType::INT2:  
+        case VertexAttributeType::INT3:  
+        case VertexAttributeType::INT4:  
+        case VertexAttributeType::BOOL:
+        {
+            if(vertex_attribute.m_IsCustomOffsetEnabled){
+                glVertexAttribIPointer(
+                    m_Index,
+                    RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+                    VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+                    vertex_attribute.m_CustomOffset,
+                    (const void*)vertex_attribute.m_Offset
+                );
+            }
+            else{
+                glVertexAttribIPointer(m_Index,
+                RetrieveVertexAttributeSize(vertex_attribute.m_AttributeType),
+                                  VertexAttributeTypeToOpenGlBaseTypeConversion(vertex_attribute.m_AttributeType),
+                                  p_VertexAttributesLayout.GetStride(),
+                                  (const void*)vertex_attribute.m_Offset
+                );
+            }
+            glEnableVertexAttribArray(m_Index);
+
+            m_Index++;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    m_Vbo.Unbind();
+    this->Unbind();
+}
+
 
 void VertexArray::WriteData(std::span<float> p_Vertices, std::span<float> p_Indices){
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 *sizeof(float), (void*)0);
