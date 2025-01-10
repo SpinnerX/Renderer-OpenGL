@@ -19,6 +19,9 @@
 #include <Renderer-OpenGL/Framebuffer.hpp>
 // #include <imgui.h>
 #include <imgui.h>
+#include <span>
+#include <Renderer-OpenGL/ModelTutorial.hpp>
+
 static void ImGuiLayoutColorModification(){
     auto& colors = ImGui::GetStyle().Colors; // @note Colors is ImVec4
 		
@@ -277,53 +280,9 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-int main(){
-    // camera
-    Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-    // settings
-    const unsigned int width = 1800;
-    const unsigned int height = 820;
-    float lastX = width / 2.0f;
-    float lastY = height / 2.0f;
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Renderer", NULL, NULL);
-    if (window == NULL){
-        // std::cout << "Failed to create GLFW window" << std::endl;
-        fmt::print("GLFW ERROR: Failed to create GLFW window!\n");
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    InputPoll::Initialize(window);
-    bool firstMouse = true;
-
-    // timing
-    float deltaTime = 0.0f;
-    float lastFrame = 0.0f;
-
-    // tell GLFW to capture our mouse
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
-        // std::cout << "Failed to initialize GLAD" << std::endl;
-        fmt::print("GLAD ERROR: Failed to initialize GLAD!\n");
-        return -1;
-    }
+//! @note These are just to initialize a few objects within our scene
+//! @note Typically this would be done in their own respective mesh classes (or something like that)
+void InitializeCube(VertexArray& vao){
 
     float vertices[] = {
         //              positions            // normals           // texture coords
@@ -370,167 +329,12 @@ int main(){
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
     };
 
-    
-    // Framebuffer frame_buffer = Framebuffer(width, height);
-
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
-
-    // Setting custom dark themed to imgui
-    ImGuiLayoutColorModification();
-    
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 410");
-
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-
-    // Shader lighting_shader("shaders/tutorials/basic_lighting_maps_2/lighting_map.vs", "shaders/tutorials/basic_lighting_maps_2/lighting_map.fs");
-    // Shader lighting_shader("shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.vs", "shaders/tutorials/basic_lighting_casters_3/basic_lighting_casters.fs");
-    Shader lighting_shader(
-        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.vs", 
-        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.fs"
-    );
-
-    Shader cube_shader("shaders/model_loading/basic_cube.vs", "shaders/model_loading/basic_cube.fs");
-
-    // cube vbo, and vao
     VertexBuffer vbo = VertexBuffer(vertices);
-
-    //! @note This is how to get currently binded vertex buffer id
-    // int current_vbo;
-    // glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
-
-    //! @note These are two different cubes
-    //! @note In OpenGL the idea is to have each vertex array per cube (based on this example).
-    VertexArray cube_vao = VertexArray(&vbo);
-    cube_vao.SetVertexAttribute({
-        {VertexAttributeType::FLOAT3, "aPos", false},
-        {VertexAttributeType::FLOAT3, "aNormal", false},
-        {VertexAttributeType::FLOAT2, "aTexCoords", false}
-    });
-
-    glm::vec3 cube1_position = {0.f, 0.f, 0.f};
-
-    //! @note How to get the current vao that is binded (used for debugging)
-    // int current_vao;
-    // glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
-
-    //! @note NOTE TO SELF: IF the cube or primitive does not look right
-    //! @note These vertex attributes have to align to the layouts within the glsl
-    //! @note Layouts like layout(location = 0), layout(location = 1), etc.
-    VertexArray light_cube_vao = VertexArray(&vbo);
-    light_cube_vao.SetVertexAttribute({
-        {VertexAttributeType::FLOAT3, "aPos", false},
-        {VertexAttributeType::FLOAT3, "aNormal", false},
-        {VertexAttributeType::FLOAT2, "aTexCoords", false}
-    });
-
-    Texture2D container_diffuse = Texture2D("assets/container_diffuse.png");
-    Texture2D container_specular = Texture2D("assets/container_specular.png");
-    
-    lighting_shader.Bind();
-    lighting_shader.Set("material.diffuse", 0);
-    lighting_shader.Set("material.specular", 1);
-    lighting_shader.Unbind();
-
-    // lighting
-    glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-
-    std::string light_variable_name = "light";
-
-    glm::vec3 cube_positions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f,  2.0f, -2.5f),
-        glm::vec3( 1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-
-    glm::vec3 point_light_positions[] = {
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    };
+    vao = VertexArray(&vbo);
+}
 
 
-
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    /*
-    float cubeVertices[] = {
-        // positions          // texture Coords
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-    */
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float planeVertices[] = {
-        // positions            // normals         // texcoords
-         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
-        -10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
-
-         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
-        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
-         10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,  10.0f, 10.0f
-    };
-
+void InitializeCubemap(VertexArray& vao){
     float cubeVertices[] = {
         // positions          // normals
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -575,6 +379,12 @@ int main(){
         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
+
+    VertexBuffer cubemap_vbo = VertexBuffer(cubeVertices);
+    vao = VertexArray(&cubemap_vbo);
+}
+
+void InitializeSkybox(VertexArray& vao){
     float skyboxVertices[] = {
         // positions          
         -1.0f,  1.0f, -1.0f,
@@ -620,24 +430,213 @@ int main(){
          1.0f, -1.0f,  1.0f
     };
 
+    VertexBuffer skybox_vbo = VertexBuffer(skyboxVertices);
+    vao = VertexArray(&skybox_vbo);
+}
 
 
+void InitializePlatform(VertexArray& vao){
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float planeVertices[] = {
+        // positions            // normals         // texcoords
+         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+        -10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+
+         10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+        -10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+         10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,  10.0f, 10.0f
+    };
+
+    VertexBuffer platform_vbo = VertexBuffer(planeVertices);
+    vao = VertexArray(&platform_vbo);
+}
+
+//! @note Span is the amounf of textures needed to be read
+void UpdateCube(const glm::vec3& Position, VertexArray& cube_vao, Shader& cube_shader, std::span<Texture2D> p_Textures){
+    glm::mat4 model = glm::mat4(1.f);
+    cube_shader.Set("model", model);
+
+    //! @note Calling this cube1
+    cube_shader.Bind();
+    model = glm::translate(model, Position);
+    cube_shader.Set("model", model);
+    // container_diffuse.Bind();
+    // container_specular.Bind(1);
+    // for(Texture2D t : p_Textures){
+    //     t.Bind();
+    // }
+    for(uint32_t i = 0; i < p_Textures.size(); i++){
+        p_Textures[i].Bind(i);
+    }
+
+    Renderer::DrawQuadPrimitive(cube_vao);
+    for(uint32_t i = 0; i < p_Textures.size(); i++){
+        p_Textures[i].Unbind();
+    }
+    // container_diffuse.Unbind();
+    // container_specular.Unbind();
+    
+    cube_shader.Unbind();
+}
+
+void UpdatePlatform(const glm::vec3& Position, VertexArray& platform_vao, Shader& platform_shader, std::span<Texture2D> p_Textures){
+    platform_shader.Bind();
+    glm::mat4 model = glm::mat4(1.0f);
+    platform_shader.Set("model", model);
+    // platform_texture.Bind();
+    for(uint32_t i = 0; i < p_Textures.size(); i++){
+        p_Textures[i].Bind(i);
+    }
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, Position);
+    platform_shader.Set("model", model);
+    Renderer::DrawQuadPrimitive(platform_vao);
+    for(uint32_t i = 0; i < p_Textures.size(); i++){
+        p_Textures[i].Unbind();
+    }
+    platform_shader.Unbind();
+    
+}
+
+void UpdateAndRenderLightLamps(const glm::vec3& Position, VertexArray& lamp_vao, Shader& shader, std::span<Texture2D> p_Textures){
+}
+
+int main(){
+    // camera
+    Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    // settings
+    const unsigned int width = 1800;
+    const unsigned int height = 820;
+    float lastX = width / 2.0f;
+    float lastY = height / 2.0f;
+    // glfw: initialize and configure
+    // ------------------------------
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    // glfw window creation
+    // --------------------
+    GLFWwindow* window = glfwCreateWindow(width, height, "OpenGL Renderer", NULL, NULL);
+    if (window == NULL){
+        // std::cout << "Failed to create GLFW window" << std::endl;
+        fmt::print("GLFW ERROR: Failed to create GLFW window!\n");
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwMakeContextCurrent(window);
+    InputPoll::Initialize(window);
+    bool firstMouse = true;
+
+    // timing
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
+
+    // tell GLFW to capture our mouse
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+        // std::cout << "Failed to initialize GLAD" << std::endl;
+        fmt::print("GLAD ERROR: Failed to initialize GLAD!\n");
+        return -1;
+    }
+    
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
+    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
+
+    // Setting custom dark themed to imgui
+    ImGuiLayoutColorModification();
+    
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 410");
+    stbi_set_flip_vertically_on_load(true);
+
+    glEnable(GL_DEPTH_TEST);
+
+    Shader lighting_shader(
+        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.vs", 
+        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.fs"
+    );
+
+    Shader cube_shader(
+        "shaders/model_loading/basic_cube.vs",
+        "shaders/model_loading/basic_cube.fs"
+    );
 
 
+    // VertexArray cube_vao = VertexArray(&vbo);
+    VertexArray cube_vao;
+    InitializeCube(cube_vao);
+    cube_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
+    });
 
+    glm::vec3 cube1_position = {0.f, 0.f, 0.f};
 
+    //! @note How to get the current vao that is binded (used for debugging)
+    // int current_vao;
+    // glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
 
+    //! @note NOTE TO SELF: IF the cube or primitive does not look right
+    //! @note These vertex attributes have to align to the layouts within the glsl
+    //! @note Layouts like layout(location = 0), layout(location = 1), etc.
+    VertexArray light_cube_vao;
+    InitializeCube(light_cube_vao);
+    light_cube_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
+    });
 
+    Texture2D container_diffuse = Texture2D("assets/container_diffuse.png");
+    Texture2D container_specular = Texture2D("assets/container_specular.png");
+    std::array<Texture2D, 2> container_textures = {
+        container_diffuse,
+        container_specular
+    };
+    
+    lighting_shader.Bind();
+    lighting_shader.Set("material.diffuse", 0);
+    lighting_shader.Set("material.specular", 1);
+    lighting_shader.Unbind();
 
+    // lighting
+    glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
+    std::string light_variable_name = "light";
 
+    glm::vec3 point_light_positions[] = {
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
+    };
 
-
+    glm::vec3 point_light_position = {0.f, 0.f, 0.f};
 
 
     //! @note Setting up platform object
-    VertexBuffer platform_vbo = VertexBuffer(planeVertices);
-    VertexArray platform_vao = VertexArray(&platform_vbo);
+    VertexArray platform_vao;
+    InitializePlatform(platform_vao);
     platform_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPos", false},
         {VertexAttributeType::FLOAT3, "aNormal", false},
@@ -645,28 +644,11 @@ int main(){
     });
 
     Texture2D platform_texture = Texture2D("assets/wood.png");
+    std::array<Texture2D, 1> platform_container_textures = {
+        platform_texture
+    };
 
     glm::vec3 platform_position = {0.0f, 1.10f, 0.0f};
-
-
-
-
-
-
-
-
-
-
-
-    //! @note Loading skybox
-    std::array<std::string, 6> faces = {
-        "assets/skybox/right.jpg",
-        "assets/skybox/left.jpg",
-        "assets/skybox/top.jpg",
-        "assets/skybox/bottom.jpg",
-        "assets/skybox/front.jpg",
-        "assets/skybox/back.jpg"
-    };
 
     ShaderLibrary library;
     library.Add(
@@ -683,31 +665,39 @@ int main(){
         )
     );
 
-    // EnvironmentMap skybox = EnvironmentMap(faces, true);
-    // skybox.BindTexture();
+
+    //! @note Loading 3D model
+    Model test_model("assets/backpack/backpack.obj");
 
     // -------------------------------------------
     //! @note Skybox/Cubemap Configurations!
     // -------------------------------------------
+    
+    //! @note Loading skybox faces
+    std::array<std::string, 6> faces = {
+        "assets/skybox/right.jpg",
+        "assets/skybox/left.jpg",
+        "assets/skybox/top.jpg",
+        "assets/skybox/bottom.jpg",
+        "assets/skybox/front.jpg",
+        "assets/skybox/back.jpg"
+    };
 
-    VertexBuffer cubemap_vbo = VertexBuffer(cubeVertices);
-    VertexBuffer skybox_vbo = VertexBuffer(skyboxVertices);
-
-    VertexArray cubemap_vao = VertexArray(&cubemap_vbo);
+    VertexArray cubemap_vao;
+    InitializeCubemap(cubemap_vao);
     cubemap_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPos", false},
         {VertexAttributeType::FLOAT2, "aTexCoords", false}
     });
 
-    VertexArray skybox_vao = VertexArray(&skybox_vbo);
+    VertexArray skybox_vao;
+    InitializeSkybox(skybox_vao);
     skybox_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPos", false}
     });
 
-    // Texture2D cubemap_texture()
+    //! @note Setting up cubemap shaders to use with textures loaded
     TextureCubemap cubemap_texture = TextureCubemap(faces);
-
-
     auto cubemap_shader = ShaderLibrary::GetShader("cubemap");
     cubemap_shader.Bind();
     cubemap_shader.Set("skybox", 0);
@@ -718,6 +708,9 @@ int main(){
 
     //! @note Configuring Framebuffers
     Framebuffer frame_buffer = Framebuffer(width, height);
+
+    // 3d model properties
+    glm::vec3 model_position = {0.f, 0.f, 0.f};
 
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -773,23 +766,6 @@ int main(){
                 camera.ProcessMouseMovement(-velocity, 0.f);
             }
         }
-        // if(InputPoll::IsMousePressed(MOUSE_BUTTON_RIGHT)){
-        //     double xPosIn, yPosIn;
-        //     glfwGetCursorPos(window, &xPosIn, &yPosIn);
-
-        //     float x_offset = xPosIn;
-        //     float velocity = x_offset * deltaTime;
-        //     camera.ProcessMouseMovement(velocity, 0.f);
-        // }
-
-        // if(InputPoll::IsMousePressed(MOUSE_BUTTON_LEFT)){
-        //     double xPosIn, yPosIn;
-        //     glfwGetCursorPos(window, &xPosIn, &yPosIn);
-
-        //     float x_offset = xPosIn;
-        //     float velocity = x_offset * deltaTime;
-        //     camera.ProcessMouseMovement(-velocity, 0.f);
-        // }
 
         if(InputPoll::IsMousePressed(MOUSE_BUTTON_MIDDLE)){
             double xPosIn, yPosIn;
@@ -820,20 +796,7 @@ int main(){
 
         // be sure to activate shader when setting uniforms/drawing objects
         lighting_shader.Bind();
-        // lighting_shader.Set("objectColor", {1.0f, 0.5f, 0.31f});
-        // lighting_shader.Set("light.position", lightPos);
 
-        //! @note Just to NOTE in-case I forget
-        //! @note I just made this into fmt::format so I can make changes to which light I want to use
-        //! @note Such as if I want to utilize spotlight, I can change these variables names to {spotlight}.position or something like that
-        //! @note This is because since I dont hvae distinguished objects from the different types of lighting
-        // lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
-        // lighting_shader.Set(fmt::format("{}.position", light_variable_name), camera.Position);
-        // lighting_shader.Set(fmt::format("{}.direction", light_variable_name), camera.Front);
-        // lighting_shader.Set(fmt::format("{}.cut_off", light_variable_name), (float)glm::cos(glm::radians(12.5)));
-        // lighting_shader.Set("viewPos", camera.Position);
-
-        // lighting_shader.Set("point_lights[0].constant", 1.0f);
         // directional light
         lighting_shader.Set("dir_light.direction", {-0.2f, -1.0f, -0.3f});
         lighting_shader.Set("dir_light.ambient", {0.05f, 0.05f, 0.05f});
@@ -855,7 +818,7 @@ int main(){
         lighting_shader.Set("point_lights[1].constant", 1.0f);
         lighting_shader.Set("point_lights[1].linear", 0.09f);
         lighting_shader.Set("point_lights[1].quadratic", 0.032f);
-        // point light 3
+        // // point light 3
         lighting_shader.Set("point_lights[2].position", point_light_positions[2]);
         lighting_shader.Set("point_lights[2].ambient", {0.05f, 0.05f, 0.05f});
         lighting_shader.Set("point_lights[2].diffuse", {0.8f, 0.8f, 0.8f});
@@ -863,7 +826,7 @@ int main(){
         lighting_shader.Set("point_lights[2].constant", 1.0f);
         lighting_shader.Set("point_lights[2].linear", 0.09f);
         lighting_shader.Set("point_lights[2].quadratic", 0.032f);
-        // point light 4
+        // // point light 4
         lighting_shader.Set("point_lights[3].position", point_light_positions[3]);
         lighting_shader.Set("point_lights[3].ambient", {0.05f, 0.05f, 0.05f});
         lighting_shader.Set("point_lights[3].diffuse", {0.8f, 0.8f, 0.8f});
@@ -902,15 +865,6 @@ int main(){
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
-        // -------------------------------------------
-        //! @note Rendering skybox
-        // -------------------------------------------
-        // skybox.OnUpdate(camera, view, projection);
-        // glDepthMask(GL_FALSE);
-        // skybox.Bind();
-        // glDrawArrays(GL_TRIANGLES, 0, 36);
-        // glDepthMask(GL_TRUE);
-
 
         lighting_shader.Set("projection", projection);
         lighting_shader.Set("view", view);
@@ -947,6 +901,7 @@ int main(){
         */
 
         //! @note Calling this cube1
+        /*
         lighting_shader.Bind();
         model = glm::translate(model, cube1_position);
         lighting_shader.Set("model", model);
@@ -956,8 +911,13 @@ int main(){
         container_diffuse.Unbind();
         container_specular.Unbind();
         lighting_shader.Unbind();
+        */
+
+        //! @note This updates, renders, and modifies the cube within our current scene
+        //! @note For now just to make things easier on me eyes
+        UpdateCube(cube1_position, cube_vao, lighting_shader, container_textures);
         
-        //! @note Rendering platform
+        /*
         lighting_shader.Bind();
         platform_texture.Bind();
         // lighting_shader.Set("view", view);
@@ -967,30 +927,70 @@ int main(){
         lighting_shader.Set("model", model);
         Renderer::DrawQuadPrimitive(platform_vao);
         lighting_shader.Unbind();
+        */
+        //! @note Rendering platform
+        UpdatePlatform(platform_position, platform_vao, lighting_shader, platform_container_textures);
         
         //-----------------------------------------
         //! @note Drawing lamp object
         //! @note ALl rendering below are for the lighting and the lamps
         //-----------------------------------------
 
+        //! @note We only bind to the data we want.
+        //! @note In this case its only the lamp objects that we want to write our shader data to the GPU
         cube_shader.Bind();
-        cube_shader.Set("projection", projection);
-        cube_shader.Set("view", view);
         // cube_shader.Set("cameraPos", camera.Position);
 
-        for(uint32_t i = 0; i < 4; i++){
-            model = glm::mat4(.5f);
-            model = glm::translate(model, point_light_positions[i]);
-            model = glm::scale(model, glm::vec3(0.2f));
-            cube_shader.Set("model", model);
-            Renderer::DrawQuadPrimitive(light_cube_vao);
-        }
+        //! @note Creating multiple light objects
+        // for(uint32_t i = 0; i < 4; i++){
+        //     model = glm::mat4(.5f);
+        //     model = glm::translate(model, point_light_positions[i]);
+        //     model = glm::scale(model, glm::vec3(0.2f));
+        //     cube_shader.Set("model", model);
+        //     Renderer::DrawQuadPrimitive(light_cube_vao);
+        // }
+
+        // lamp 1
+        model = glm::mat4(.5f);
+        model = translate(model, point_light_positions[0]);
+        model = glm::scale(model, glm::vec3(0.2f));
+        cube_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(light_cube_vao);
+        // cube_shader.Unbind();
+
+
+        // lamp 2
+        model = glm::mat4(.5f);
+        model = translate(model, point_light_positions[1]);
+        model = glm::scale(model, glm::vec3(0.2f));
+        cube_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(light_cube_vao);
+
+        // lamp 3
+        model = glm::mat4(.5f);
+        model = translate(model, point_light_positions[2]);
+        model = glm::scale(model, glm::vec3(0.2f));
+        cube_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(light_cube_vao);
+
+        // lamp 4
+        model = glm::mat4(.5f);
+        model = translate(model, point_light_positions[3]);
+        model = glm::scale(model, glm::vec3(0.2f));
+        cube_shader.Set("model", model);
+        Renderer::DrawQuadPrimitive(light_cube_vao);
         cube_shader.Unbind();
 
 
-
-
-        // drawing cubemap stuff
+        //! @note Drawing our model
+        lighting_shader.Bind();
+        test_model.Draw(lighting_shader, model_position);
+        lighting_shader.Unbind();
+        
+        // -------------------------------------------
+        //! @note Rendering skybox
+        //! @note drawing cubemap stuff
+        // -------------------------------------------
         cubemap_shader.Bind();
         cubemap_shader.Set("model", model);
         cubemap_shader.Set("view", view);
@@ -1026,8 +1026,11 @@ int main(){
 
         //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
-        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position](){
-            ImGui::Begin("Properties Panel");
+        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position](){
+            // ImGui::Begin("Properties Panel");
+            //! @note These transform panels are for messing around with various objects
+            //! @note Eventually I'll make an attempt at actually having "proper" scene management system in place for making life-easier, but as of right now not the point of this project
+            ImGui::Begin("Transforms Panels");
             
             ImGui::Begin("Platform Properties");
             
@@ -1036,6 +1039,12 @@ int main(){
             //! @note Rather just call transform and make this better
             DrawVec3UI("platform", platform_position);
             DrawVec3UI("cube1", cube1_position);
+            DrawVec3UI("light pos 1", point_light_positions[0]);
+            DrawVec3UI("light pos 2", point_light_positions[1]);
+            DrawVec3UI("light pos 3", point_light_positions[2]);
+            DrawVec3UI("light pos 4", point_light_positions[3]);
+            DrawVec3UI("model", model_position);
+
             ImGui::End();
 
             ImGui::End();
