@@ -58,6 +58,9 @@ public:
     void Add(const Shader& p_Shader);
     void Add(const std::string& p_Filename, const Shader& p_Shader);
 
+    static bool IsExist(const std::string& p_ShaderName);
+    static Shader& GetShader(const std::string& p_ShaderName);
+
     Shader& Get(const std::string& p_ShaderTag);
     //! @note Enables to load the shader and use it immediately, that automatically gets added to lookup.
     Shader Load(const std::string& p_VertShader, const std::string& p_FragShader);

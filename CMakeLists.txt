@@ -15,6 +15,8 @@ build_application(
     src/Renderer-OpenGL/BasicLightObject.cpp
     src/Renderer-OpenGL/Camera.cpp
     src/Renderer-OpenGL/MeshImporter.cpp
+    src/Renderer-OpenGL/EnvironmentMap.cpp
+    src/Renderer-OpenGL/TextureCubemap.cpp
     src/Renderer-OpenGL/Renderer.cpp
     Application.cpp
     

@@ -1,5 +1,8 @@
+#include "Renderer-OpenGL/EnvironmentMap.hpp"
+#include "Renderer-OpenGL/TextureCubemap.hpp"
 #include <Renderer-OpenGL/Renderer.hpp>
 #include <Renderer-OpenGL/Shader.hpp>
+#include <array>
 #include <functional>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -384,6 +387,181 @@ int main(){
     };
 
 
+
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float cubeVertices[] = {
+        // positions          // texture Coords
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //! @note Loading skybox
+    std::array<std::string, 6> faces = {
+        "assets/skybox/right.jpg",
+        "assets/skybox/left.jpg",
+        "assets/skybox/top.jpg",
+        "assets/skybox/bottom.jpg",
+        "assets/skybox/front.jpg",
+        "assets/skybox/back.jpg"
+    };
+
+    ShaderLibrary library;
+    library.Add(
+        Shader(
+            "shaders/tutorials/cubemap/skybox.vs",
+            "shaders/tutorials/cubemap/skybox.fs"
+        )
+    );
+
+    library.Add(
+        Shader(
+            "shaders/tutorials/cubemap/cubemap.vs",
+            "shaders/tutorials/cubemap/cubemap.fs"
+        )
+    );
+
+    // EnvironmentMap skybox = EnvironmentMap(faces, true);
+    // skybox.BindTexture();
+
+    // -------------------------------------------
+    //! @note Skybox/Cubemap Configurations!
+    // -------------------------------------------
+
+    VertexBuffer cubemap_vbo = VertexBuffer(cubeVertices);
+    VertexBuffer skybox_vbo = VertexBuffer(skyboxVertices);
+
+    VertexArray cubemap_vao = VertexArray(&cubemap_vbo);
+    cubemap_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false}
+    });
+
+    VertexArray skybox_vao = VertexArray(&skybox_vbo);
+    skybox_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false}
+    });
+
+    // Texture2D cubemap_texture()
+    TextureCubemap cubemap_texture = TextureCubemap(faces);
+
+
+    auto cubemap_shader = ShaderLibrary::GetShader("cubemap");
+    cubemap_shader.Bind();
+    cubemap_shader.Set("texture1", 0);
+
+    auto skybox_shader = ShaderLibrary::GetShader("skybox");
+    skybox_shader.Bind();
+    skybox_shader.Set("skybox", 0);
+
     //! @note Configuring Framebuffers
     Framebuffer frame_buffer = Framebuffer(width, height);
 
@@ -395,6 +573,7 @@ int main(){
         frame_buffer.Bind();
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         if (InputPoll::IsKeyPressed(KEY_ESCAPE)){
             glfwSetWindowShouldClose(window, true);
@@ -547,6 +726,17 @@ int main(){
 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
+
+        // -------------------------------------------
+        //! @note Rendering skybox
+        // -------------------------------------------
+        // skybox.OnUpdate(camera, view, projection);
+        // glDepthMask(GL_FALSE);
+        // skybox.Bind();
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // glDepthMask(GL_TRUE);
+
+
         lighting_shader.Set("projection", projection);
         lighting_shader.Set("view", view);
 
@@ -594,14 +784,39 @@ int main(){
             Renderer::DrawQuadPrimitive(light_cube_vao);
         }
 
+
+
+
+
+
+
+        //! @note Rendering skybox
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        
+        skybox_shader.Bind();
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+        skybox_shader.Set("view", view);
+        skybox_shader.Set("projection", projection);
+
+        // skybox cube
+        skybox_vao.Bind();
+        cubemap_texture.Bind();
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDepthFunc(GL_LESS);
+
         frame_buffer.Unbind();
 
         //! @note OnUI Update. This should be done after be bind our frame buffer to our scene
+        //! @note This is just a quick and easy way to getting widgets setup with imgui
+        //! @note Meaning these widgets can be associated with the viewport itself.
+
+        //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
         DockspaceWindow(window, width, height, frame_buffer, [](){
             ImGui::Begin("Properties Panel");
             ImGui::End();
         });
+        //! @note EndFrame ends per frame for entire imgui setup
         EndFrame(window, width, height);
 
 

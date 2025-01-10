@@ -53,7 +53,10 @@ Shader::Shader(const std::string& p_VertexShader, const std::string& p_FragmentS
 
     glGetProgramiv(m_ShaderProgramID, GL_LINK_STATUS, &success);
     if(!success){
+        char infoLog[512];
+        glGetProgramInfoLog(m_ShaderProgramID, 512, nullptr, infoLog);
         fmt::print("Could NOT load shader program!\n");
+        fmt::print("{}\n", infoLog);
         return;
     }
 
@@ -174,6 +177,14 @@ std::string Shader::GetShaderName() const{
     std::string name = m_Filepath.substr(last_slash, count);
 
     return name;
+}
+
+bool ShaderLibrary::IsExist(const std::string& p_ShaderName){
+    return s_CurrentShaderLibraryInstance->m_ShaderLibs.contains(p_ShaderName);
+}
+
+Shader& ShaderLibrary::GetShader(const std::string& p_ShaderName){
+    return s_CurrentShaderLibraryInstance->m_ShaderLibs.at(p_ShaderName);
 }
 
 
