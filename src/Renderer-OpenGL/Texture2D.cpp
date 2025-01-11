@@ -8,7 +8,7 @@
 // #endif
 #include <Renderer-OpenGL/stb_image.hpp>
 
-Texture2D::Texture2D(const std::string& p_Filename){
+Texture2D::Texture2D(const std::string& p_Filename, bool gammaCorrectionEnabled){
     glGenTextures(1, &m_TextureID);
     Bind();
     
@@ -37,7 +37,14 @@ Texture2D::Texture2D(const std::string& p_Filename){
     
 
     if (data){
-        glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format_to_use, GL_UNSIGNED_BYTE, data);
+        if(!gammaCorrectionEnabled){
+            glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format_to_use, GL_UNSIGNED_BYTE, data);
+        }
+        else{
+            internal_format = GL_SRGB;
+            format_to_use = GL_RGB;
+            glTexImage2D(GL_TEXTURE_2D, 0, internal_format, image_width, image_height, 0, format_to_use, GL_UNSIGNED_BYTE, data);
+        }
         glGenerateMipmap(GL_TEXTURE_2D);
 
         // set the texture wrapping/filtering options (on the currently bound texture object)

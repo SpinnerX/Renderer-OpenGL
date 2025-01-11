@@ -276,6 +276,44 @@ static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_
 
 }
 
+static void DrawFloatUI(const std::string& Tag, float& value, float reset_value=0.f){
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::PushID(Tag.c_str());
+
+    float columnWidth = 100.0f;
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", Tag.c_str());
+    ImGui::NextColumn();
+
+    ImGui::PushItemWidth(ImGui::CalcItemWidth());
+    // ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
+
+    if(ImGui::Button("R_X")){
+        value = reset_value;
+        // ImGui::End();
+    }
+
+    // ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+
+    ImGui::SameLine();
+    ImGui::DragFloat("##X", &value, 0.1f, 0.0f, 0.0f, "%.2f");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    ImGui::PopStyleVar();
+
+    ImGui::Columns(1);
+
+    ImGui::PopID();
+}
+
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
 }
@@ -494,6 +532,7 @@ void UpdatePlatform(const glm::vec3& Position, VertexArray& platform_vao, Shader
     model = glm::translate(model, Position);
     platform_shader.Set("model", model);
     Renderer::DrawQuadPrimitive(platform_vao);
+
     for(uint32_t i = 0; i < p_Textures.size(); i++){
         p_Textures[i].Unbind();
     }
@@ -643,7 +682,7 @@ int main(){
         {VertexAttributeType::FLOAT2, "aTexCoords", false}
     });
 
-    Texture2D platform_texture = Texture2D("assets/wood.png");
+    Texture2D platform_texture = Texture2D("assets/wood.png", true);
     std::array<Texture2D, 1> platform_container_textures = {
         platform_texture
     };
@@ -667,7 +706,14 @@ int main(){
 
 
     //! @note Loading 3D model
-    Model test_model("assets/backpack/backpack.obj");
+    // Model test_model("assets/backpack/backpack.obj");
+    std::array<Texture2D, 6> texture_mappings = {
+        Texture2D("assets/robo-pose/textures/specular.jpeg"),
+        Texture2D("assets/robo-pose/textures/diffuse.jpeg"),
+        Texture2D("assets/robo-pose/textures/Texture_1K.jpg"),
+        Texture2D("assets/robo-pose/textures/LP_BodyNormalsMap_1K.jpg")
+    };
+    Model test_model("assets/robo-pose/source/robot-pose.obj", true, texture_mappings);
 
     // -------------------------------------------
     //! @note Skybox/Cubemap Configurations!
@@ -710,7 +756,34 @@ int main(){
     Framebuffer frame_buffer = Framebuffer(width, height);
 
     // 3d model properties
-    glm::vec3 model_position = {0.f, 0.f, 0.f};
+    glm::vec3 model_position = {0.f, 0.50f, 0.f};
+    glm::vec3 model_scale = {.5f, .5f, .5f};
+    // float model_rotation_angle = 45.0f;
+    glm::vec3 model_rotation = {0.f, 0.f, 1.f};
+    float model_rotation_angle = 176.80f;
+    // glm::vec3 model_rotate = {0.f, 0.f, 0.f};
+
+
+    //! @note Testing geometry
+    // VertexBuffer vbo = VertexBuffer()
+    // VertexArray geometry_vao = VertexArray();
+    Shader geometry_shader = Shader("shaders/geometry.vs", "shaders/geometry.fs");
+    VertexArray geometry_vao;
+    InitializeCube(geometry_vao);
+
+    Texture2D geometry_texture = Texture2D("assets/wood.png");
+
+    glm::vec3 geometry_position = {0.f, 0.f, 0.f};
+
+    geometry_shader.Bind();
+
+    geometry_vao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPosition", false},
+        {VertexAttributeType::FLOAT4, "aColor", false},
+        {VertexAttributeType::FLOAT2, "aTexCoords", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+    });
+
 
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -913,6 +986,20 @@ int main(){
         lighting_shader.Unbind();
         */
 
+       //! @note Testing geometry cube
+        geometry_shader.Bind();
+        // geometry_texture.Bind();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, geometry_position);
+        // geometry_shader.Set("view", view);
+        // geometry_shader.Set("projection", projection);
+
+        geometry_shader.Set("model", model);
+        // geometry_shader.Set("color", glm::vec4(1.0f, 0.f, 0.f, 1.f));
+        Renderer::DrawQuadPrimitive(geometry_vao);
+        // geometry_texture.Unbind();
+        geometry_shader.Unbind();
+
         //! @note This updates, renders, and modifies the cube within our current scene
         //! @note For now just to make things easier on me eyes
         UpdateCube(cube1_position, cube_vao, lighting_shader, container_textures);
@@ -930,7 +1017,10 @@ int main(){
         */
         //! @note Rendering platform
         UpdatePlatform(platform_position, platform_vao, lighting_shader, platform_container_textures);
-        
+
+
+
+
         //-----------------------------------------
         //! @note Drawing lamp object
         //! @note ALl rendering below are for the lighting and the lamps
@@ -984,7 +1074,7 @@ int main(){
 
         //! @note Drawing our model
         lighting_shader.Bind();
-        test_model.Draw(lighting_shader, model_position);
+        test_model.Draw(lighting_shader, model_position, model_scale, model_rotation, model_rotation_angle);
         lighting_shader.Unbind();
         
         // -------------------------------------------
@@ -1026,11 +1116,11 @@ int main(){
 
         //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
-        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position](){
+        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position](){
             // ImGui::Begin("Properties Panel");
             //! @note These transform panels are for messing around with various objects
             //! @note Eventually I'll make an attempt at actually having "proper" scene management system in place for making life-easier, but as of right now not the point of this project
-            ImGui::Begin("Transforms Panels");
+            // ImGui::Begin("Transforms Panels");
             
             ImGui::Begin("Platform Properties");
             
@@ -1044,6 +1134,30 @@ int main(){
             DrawVec3UI("light pos 3", point_light_positions[2]);
             DrawVec3UI("light pos 4", point_light_positions[3]);
             DrawVec3UI("model", model_position);
+            DrawVec3UI("model scale", model_scale);
+            DrawVec3UI("model rotation", model_rotation);
+            DrawFloatUI("model angle", model_rotation_angle);
+            DrawVec3UI("geometry", geometry_position);
+
+
+            // Begin drag-drop sources
+            ImGui::BeginDragDropSource();
+            std::string path = "assets/";
+            ImGui::SetDragDropPayload("BROWSE_ITEM",path.c_str(), path.size());
+            ImGui::EndDragDropSource();
+
+            ImGui::Button("Texture", ImVec2(100.0f, 0.0f));
+
+            ImGui::BeginDragDropTarget();
+            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")){
+                const char* filepath = (const char*)payload->Data;
+                std::string texturePath = std::string(fmt::format("{} / {}", path, filepath));
+                test_model.OnReload(texturePath);
+
+                fmt::print("Model loaded path during rumtime was = {}\n", texturePath);
+            }
+            ImGui::EndDragDropTarget();
+
 
             ImGui::End();
 

@@ -32,7 +32,24 @@ void Framebuffer::OnCreate(uint32_t Width, uint32_t Height){
 
     // attaching depth attachment to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
-    
+
+
+    //! @note Creating texture for specifying framebuffer depth map (for shadow passes)
+    glGenTextures(1, &m_DepthMapFbo);
+    glBindTexture(GL_TEXTURE_2D, m_DepthMapFbo);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, Width, Height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    //! @note Attaching depth/shadow mapping to this framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthMapFbo, 0);
+    // glDrawBuffer(GL_NONE);
+    // glReadBuffer(GL_NONE);
+
+
+
     if(glCheckFramebufferStatus(m_FramebufferID) != GL_FRAMEBUFFER_COMPLETE){
         fmt::print("Framebuffer Incomplete!\n");
     }
@@ -44,10 +61,12 @@ void Framebuffer::OnCreate(uint32_t Width, uint32_t Height){
 }
 
 void Framebuffer::Bind(){
+    // glEnable(GL_FRAMEBUFFER_SRGB);
     glBindFramebuffer(GL_FRAMEBUFFER, m_FramebufferID);
 }
 
 void Framebuffer::Unbind(){
+    // glDisable()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

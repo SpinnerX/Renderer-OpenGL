@@ -13,6 +13,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <Renderer-OpenGL/stb_image.hpp>
+#include <Renderer-OpenGL/Texture2D.hpp>
+#include <span>
 
 unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
 
@@ -24,34 +26,51 @@ public
     // model data 
     std::vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     std::vector<Mesh>    meshes;
+    std::span<Texture2D> gl_textures;
     std::string directory;
     bool gammaCorrection;
+    bool texturesEnabled = false;
 
     // constructor, expects a filepath to a 3D model.
-    Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
+    Model(std::string const &path, bool hasTextures=false, std::span<Texture2D> p_Textures={}, bool gamma = false) : gammaCorrection(gamma), gl_textures(p_Textures)
     {
-        loadModel(path);
+        texturesEnabled = hasTextures;
+        loadModel(path, hasTextures, p_Textures);
     }
 
 
-    void OnReload(const std::string& p_Path){
-        loadModel(p_Path);
+    void OnReload(const std::string& p_Path, bool hasTextures=false, std::span<Texture2D> p_Textures={}){
+        gl_textures = p_Textures;
+        texturesEnabled = hasTextures;
+        loadModel(p_Path, hasTextures, p_Textures);
     }
 
     // draws the model, and thus all its meshes
-    void Draw(Shader &shader, glm::vec3& Position)
+    void Draw(Shader &shader, glm::vec3& Position, glm::vec3& Scale, glm::vec3& Rotation, float model_rotation_angle)
     {
+        //! @note Apply textures (if enabled)
+        if(texturesEnabled){
+            for(uint32_t i = 0; i < gl_textures.size(); i++){
+                gl_textures[i].Bind(i);
+            }   
+        }
         for(unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].Draw(Position, shader);
+            meshes[i].Draw(Position, Scale, Rotation, model_rotation_angle, shader);
+        
+        if(texturesEnabled){
+            for(uint32_t i = 0; i < gl_textures.size(); i++){
+                gl_textures[i].Unbind();
+            }
+        }
     }
     
 private:
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-    void loadModel(string const &path)
+    void loadModel(string const &path, bool hasTextures=false, std::span<Texture2D> p_Textures={})
     {
         // read file via ASSIMP
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_FlipWindingOrder | aiProcess_CalcTangentSpace);
         // check for errors
         if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
         {

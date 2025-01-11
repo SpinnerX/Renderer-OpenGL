@@ -54,7 +54,7 @@ public:
     }
 
     // render the mesh
-    void Draw(glm::vec3& Position, Shader &shader) 
+    void Draw(glm::vec3& Position, glm::vec3& Scale, glm::vec3& Rotation, float rotation_angle, Shader &shader) 
     {
         glm::mat4 model = glm::mat4(1.0f);
         shader.Set("model", model);
@@ -85,6 +85,9 @@ public:
             shader.Set(fmt::format("{}", (name + number)), int(i));
         }
         model = glm::translate(model, Position);
+        model = glm::scale(model, Scale);
+        //! @note model, angle of rotation, {x,y,z} is the axis angle (the axis we specify in which to rotate the model)
+        model = glm::rotate(model, glm::radians(rotation_angle), Rotation);
         shader.Set("model", model);
         
         // draw mesh

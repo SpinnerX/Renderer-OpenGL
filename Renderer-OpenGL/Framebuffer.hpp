@@ -9,14 +9,19 @@ enum class FramebufferFormatAttribute{
     ONLY_STENCIL // SPECIFY UTILIZING ONLY STENCIL BUFFERS
 };
 
+
+enum class FramebufferSpecifications{
+    NONE = 0,
+    DEPTH_MAP,
+};
+
 /*
-
-FramebufferAttributes fb_attr = { "Framebuffer1", DEPTH_WITH_STENCLI, true};
-
+FramebufferFormats format_phases = {
+    {DepthStencil, ShadowDepth}
+}
 */
-struct FramebufferAttributes{
 
-    FramebufferFormatAttribute FormatAttribute;
+struct FramebufferFormats{
 };
 
 class Framebuffer{
@@ -44,6 +49,8 @@ private:
     uint32_t m_ColorAttachment = -1;
 
     uint32_t m_DepthAttachment = -1;
+
+    uint32_t m_DepthMapFbo = -1;
 
     // Texture2D m_ColorAttachment;
 
