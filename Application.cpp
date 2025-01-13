@@ -815,11 +815,20 @@ int main(){
         Texture2D("assets/obj-nat-rock-01/textures/diffuse.jpeg"),
         Texture2D("assets/obj-nat-rock-01/textures/normal.jpeg")
     };
-    Model test_model2("assets/obj-nat-rock-01/source/rock.obj", true, texture2);
-    glm::vec3 model_position2 = {0.f, 0.f, 0.f};
-    glm::vec3 model_scale2 = {.01f, .01f, .01f};
-    // glm::vec3 model_rotation2 = {0.f, 0.f, 1.f};
-    glm::vec3 model_rotation2 = {0.f, 0.f, 0.f};
+    // Model test_model2("assets/obj-nat-rock-01/source/rock.obj", true, texture2);
+    // Model test_model2("assets/XArmour.fbx");
+    Model test_model2("assets/Bloom.obj");
+    // std::array<Texture2D, 6> texture_mappings2 = {
+    //     Texture2D("assets/robo-pose/textures/Texture_1K.jpg"),
+    //     Texture2D("assets/robo-pose/textures/LP_BodyNormalsMap_1K.jpg"),
+    //     Texture2D("assets/robo-pose/textures/specular.jpeg"),
+    //     Texture2D("assets/robo-pose/textures/diffuse.jpeg"),
+    // };
+    // Model test_model2("assets/robo-pose/source/robot-pose.obj", true, texture_mappings2);
+
+    glm::vec3 model_position2 = {8.50f, 0.50f, 0.f};
+    glm::vec3 model_scale2 = {.1f, .1f, .1f};
+    glm::vec3 model_rotation2 = {0.f, 0.f, 1.f};
     float camera_sensitivity = 5.f;
     float camera_mouse_sensitivity = 0.1;
 

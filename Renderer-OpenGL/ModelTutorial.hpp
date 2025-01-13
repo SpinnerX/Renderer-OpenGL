@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assimp/material.h>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -137,11 +138,13 @@ private:
                 vec.x = mesh->mTextureCoords[0][i].x; 
                 vec.y = mesh->mTextureCoords[0][i].y;
                 vertex.TexCoords = vec;
+                
                 // tangent
                 vector.x = mesh->mTangents[i].x;
                 vector.y = mesh->mTangents[i].y;
                 vector.z = mesh->mTangents[i].z;
                 vertex.Tangent = vector;
+                
                 // bitangent
                 vector.x = mesh->mBitangents[i].x;
                 vector.y = mesh->mBitangents[i].y;
@@ -177,10 +180,10 @@ private:
         vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
         textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
         // 3. normal maps
-        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
         
         // return a mesh object created from the extracted mesh data
