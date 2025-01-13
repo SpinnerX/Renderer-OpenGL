@@ -1,6 +1,7 @@
 #pragma once
 #include "Camera.hpp"
 #include "Shader.hpp"
+#include "TextureCubemap.hpp"
 #include "VertexArray.hpp"
 #include <string>
 #include <span>
@@ -8,29 +9,23 @@
 class EnvironmentMap{
 public:
     // EnvironmentMap(const std::string& p_Filepath);
-    EnvironmentMap(std::span<std::string> p_Faces, bool isDepthMaskEnabled=false);
+    EnvironmentMap(std::span<std::string> p_Faces);
 
     bool IsLoaded() const;
 
     void Bind();
     void Unbind();
 
-    void BindTexture();
-
-    void OnUpdate(Camera& camera, glm::mat4& view, glm::mat4 proj);
-
-    bool GetDepthMaskStatus() { return m_IsDepthMaskEnabled; }
-
+    void OnUpdate(Camera& camera, glm::mat4& projection, uint32_t width, uint32_t height);
 
 private:
-    Shader m_CubemapObjectShader;
-    Shader m_SkyboxShader;
-
     VertexArray m_CubemapVao;
     VertexArray m_SkyboxVao;
+    TextureCubemap m_CubemapTextures;
+    glm::mat4 m_Model;
+    glm::mat4 m_View;
+    glm::mat4 m_Projection;
 
-    bool m_IsDepthMaskEnabled=false;
-    uint32_t m_CubemapTextureID = -1;
-    bool m_IsEnvironmentMapLoaded = false;
-
+    Shader m_CubemapShader;
+    Shader m_SkyboxShader;
 };

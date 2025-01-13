@@ -1,4 +1,5 @@
 #pragma once
+#include <fmt/core.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,8 +17,8 @@ enum Camera_Movement {
 // Default camera values
 const float YAW         = -90.0f;
 const float PITCH       =  0.0f;
-const float SPEED       =  2.5f;
-const float SENSITIVITY =  0.1f;
+// const float SPEED       =  2.5f;
+// const float SENSITIVITY =  0.1f;
 const float ZOOM        =  45.0f;
 
 
@@ -27,8 +28,10 @@ public:
     struct CameraConfiguration{
     };
 
+    static constexpr float RotationAngle = 176.80f;
+
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM){
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(5.f), camera_mouse_sensitivity(0.1f), MouseSensitivity(0.1f), Zoom(ZOOM){
         Position = position;
         WorldUp = up;
         Yaw = yaw;
@@ -37,7 +40,7 @@ public:
     }
 
     // constructor with scalar values
-    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM){
+    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(5.f), camera_mouse_sensitivity(0.1f), MouseSensitivity(0.1f), Zoom(ZOOM){
         Position = glm::vec3(posX, posY, posZ);
         WorldUp = glm::vec3(upX, upY, upZ);
         Yaw = yaw;
@@ -64,11 +67,11 @@ public:
             Position += Right * velocity;
         
         if(direction == UP){
-            Position += Up * deltaTime;
+            Position += Up * velocity;
         }
 
         if(direction == DOWN){
-            Position -= Up * deltaTime;
+            Position -= Up * velocity;
         }
     }
 
@@ -102,6 +105,18 @@ public:
             Zoom = 45.0f;
     }
 
+    void SetCameraMovementSpeed(float Sensitivity){
+        camera_movement_sensitivity = Sensitivity;
+        MovementSpeed = camera_movement_sensitivity;
+    }
+
+    void SetCameraMouseSpeed(float Sensitivity){
+        camera_mouse_sensitivity = Sensitivity;
+        // MouseSensitivity = camera_mouse_sensitivity;
+    }
+
+    float GetCameraSensitivity() const { return camera_mouse_sensitivity; }
+
 private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors(){
@@ -134,4 +149,9 @@ public:
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
+
+
+    // float camera_mouse_sensitivity = 0.1f;
+    float camera_mouse_sensitivity = 2.5f;
+    float camera_movement_sensitivity = 2.5f;
 };

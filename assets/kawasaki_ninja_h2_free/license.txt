@@ -1,0 +1,11 @@
+Model Information:
+* title:	Kawasaki Ninja H2 [free]
+* source:	https://sketchfab.com/3d-models/kawasaki-ninja-h2-free-0ab38d6e39664b25bfaf9f5c3e0c767c
+* author:	Anshuman dutta (https://sketchfab.com/Anshuman_Dutta)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Kawasaki Ninja H2 [free]" (https://sketchfab.com/3d-models/kawasaki-ninja-h2-free-0ab38d6e39664b25bfaf9f5c3e0c767c) by Anshuman dutta (https://sketchfab.com/Anshuman_Dutta) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

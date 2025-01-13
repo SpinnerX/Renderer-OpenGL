@@ -1,5 +1,5 @@
 #include "Renderer-OpenGL/EnvironmentMap.hpp"
-#include "Renderer-OpenGL/TextureCubemap.hpp"
+#include "Renderer-OpenGL/PointLight.hpp"
 #include <Renderer-OpenGL/Renderer.hpp>
 #include <Renderer-OpenGL/Shader.hpp>
 #include <array>
@@ -73,7 +73,7 @@ static void EndFrame(GLFWwindow* Window, uint32_t width, uint32_t height){
     ImGui::Render();
 
     //! @note Clear each frame
-    glViewport(0, 0, width, height);
+    // glViewport(0, 0, width, height);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     if(io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable){
         GLFWwindow* backup_ctx = glfwGetCurrentContext();
@@ -315,7 +315,7 @@ static void DrawFloatUI(const std::string& Tag, float& value, float reset_value=
 }
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-    glViewport(0, 0, width, height);
+    // glViewport(0, 0, width, height);
 }
 
 //! @note These are just to initialize a few objects within our scene
@@ -371,7 +371,7 @@ void InitializeCube(VertexArray& vao){
     vao = VertexArray(&vbo);
 }
 
-
+/*
 void InitializeCubemap(VertexArray& vao){
     float cubeVertices[] = {
         // positions          // normals
@@ -471,7 +471,7 @@ void InitializeSkybox(VertexArray& vao){
     VertexBuffer skybox_vbo = VertexBuffer(skyboxVertices);
     vao = VertexArray(&skybox_vbo);
 }
-
+*/
 
 void InitializePlatform(VertexArray& vao){
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -605,7 +605,7 @@ int main(){
     
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
-    stbi_set_flip_vertically_on_load(true);
+    // stbi_set_flip_vertically_on_load(true);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -618,6 +618,8 @@ int main(){
         "shaders/model_loading/basic_cube.vs",
         "shaders/model_loading/basic_cube.fs"
     );
+
+    // library.Add(Shader());
 
 
     // VertexArray cube_vao = VertexArray(&vbo);
@@ -638,13 +640,16 @@ int main(){
     //! @note NOTE TO SELF: IF the cube or primitive does not look right
     //! @note These vertex attributes have to align to the layouts within the glsl
     //! @note Layouts like layout(location = 0), layout(location = 1), etc.
-    VertexArray light_cube_vao;
-    InitializeCube(light_cube_vao);
-    light_cube_vao.SetVertexAttribute({
-        {VertexAttributeType::FLOAT3, "aPos", false},
-        {VertexAttributeType::FLOAT3, "aNormal", false},
-        {VertexAttributeType::FLOAT2, "aTexCoords", false}
-    });
+    //! @note Uncomment this...
+    // VertexArray light_cube_vao;
+    // InitializeCube(light_cube_vao);
+    // light_cube_vao.SetVertexAttribute({
+    //     {VertexAttributeType::FLOAT3, "aPos", false},
+    //     {VertexAttributeType::FLOAT3, "aNormal", false},
+    //     {VertexAttributeType::FLOAT2, "aTexCoords", false}
+    // });
+
+    PointLight my_pointlight = PointLight("Point light 1");
 
     Texture2D container_diffuse = Texture2D("assets/container_diffuse.png");
     Texture2D container_specular = Texture2D("assets/container_specular.png");
@@ -656,7 +661,7 @@ int main(){
     lighting_shader.Bind();
     lighting_shader.Set("material.diffuse", 0);
     lighting_shader.Set("material.specular", 1);
-    lighting_shader.Unbind();
+    // lighting_shader.Unbind();
 
     // lighting
     glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -704,14 +709,26 @@ int main(){
         )
     );
 
+    library.Add(
+        Shader("shaders/tutorials/basic_multiple_lights_4/multiple_lights.vs", 
+        "shaders/tutorials/basic_multiple_lights_4/multiple_lights.fs"
+        )
+    );
+    library.Add(
+        Shader(
+        "shaders/model_loading/basic_cube.vs",
+        "shaders/model_loading/basic_cube.fs"
+        )
+    );
+
 
     //! @note Loading 3D model
     // Model test_model("assets/backpack/backpack.obj");
     std::array<Texture2D, 6> texture_mappings = {
+        Texture2D("assets/robo-pose/textures/Texture_1K.jpg"),
+        Texture2D("assets/robo-pose/textures/LP_BodyNormalsMap_1K.jpg"),
         Texture2D("assets/robo-pose/textures/specular.jpeg"),
         Texture2D("assets/robo-pose/textures/diffuse.jpeg"),
-        Texture2D("assets/robo-pose/textures/Texture_1K.jpg"),
-        Texture2D("assets/robo-pose/textures/LP_BodyNormalsMap_1K.jpg")
     };
     Model test_model("assets/robo-pose/source/robot-pose.obj", true, texture_mappings);
 
@@ -728,7 +745,8 @@ int main(){
         "assets/skybox/front.jpg",
         "assets/skybox/back.jpg"
     };
-
+    {
+    /*
     VertexArray cubemap_vao;
     InitializeCubemap(cubemap_vao);
     cubemap_vao.SetVertexAttribute({
@@ -751,16 +769,26 @@ int main(){
     auto skybox_shader = ShaderLibrary::GetShader("skybox");
     skybox_shader.Bind();
     skybox_shader.Set("skybox", 0);
+    */
+    }
+
+   EnvironmentMap environment_map = EnvironmentMap(faces);
 
     //! @note Configuring Framebuffers
+    // FramebufferAttachments attachments = {
+    //     {
+    //         FramebufferAttachmentType::DEPTH
+    //     }
+    // };
+    // Framebuffer frame_buffer = Framebuffer(width, height, attachments);
     Framebuffer frame_buffer = Framebuffer(width, height);
-
     // 3d model properties
     glm::vec3 model_position = {0.f, 0.50f, 0.f};
     glm::vec3 model_scale = {.5f, .5f, .5f};
     // float model_rotation_angle = 45.0f;
     glm::vec3 model_rotation = {0.f, 0.f, 1.f};
     float model_rotation_angle = 176.80f;
+    // float model_rotation_angle = 0.f;
     // glm::vec3 model_rotate = {0.f, 0.f, 0.f};
 
 
@@ -775,8 +803,6 @@ int main(){
 
     glm::vec3 geometry_position = {0.f, 0.f, 0.f};
 
-    geometry_shader.Bind();
-
     geometry_vao.SetVertexAttribute({
         {VertexAttributeType::FLOAT3, "aPosition", false},
         {VertexAttributeType::FLOAT4, "aColor", false},
@@ -784,17 +810,47 @@ int main(){
         {VertexAttributeType::FLOAT3, "aNormal", false},
     });
 
+    // Model test_model2("assets/backpack/backpack.obj");
+    std::array<Texture2D, 2> texture2 = {
+        Texture2D("assets/obj-nat-rock-01/textures/diffuse.jpeg"),
+        Texture2D("assets/obj-nat-rock-01/textures/normal.jpeg")
+    };
+    Model test_model2("assets/obj-nat-rock-01/source/rock.obj", true, texture2);
+    glm::vec3 model_position2 = {0.f, 0.f, 0.f};
+    glm::vec3 model_scale2 = {.01f, .01f, .01f};
+    // glm::vec3 model_rotation2 = {0.f, 0.f, 1.f};
+    glm::vec3 model_rotation2 = {0.f, 0.f, 0.f};
+    float camera_sensitivity = 5.f;
+    float camera_mouse_sensitivity = 0.1;
 
+
+    //! @note Creating PointLight object
+    // PointLight my_pointlight = PointLight("Point light 1");
+    // my_pointlight.SetPosition(glm::vec3( 2.3f, -3.3f, -4.0f));
+    glm::vec3 pointlight_pos_test = glm::vec3( 2.3f, -3.3f, -4.0f);
+    glm::vec3 pointlight_scale_test = {.2f, .2f, .2f};
+    glm::vec3 pointlight_rotation_test = {0.f, 0.f, 0.f};
+
+    Renderer::SetViewport(width, height);
+
+
+    std::array<glm::vec2, 2> viewportBounds;
+    //! @note TO ENABLE ANTI_ALIASING
+    // glEnable(GL_MULTISAMPLE);
     while (!glfwWindowShouldClose(window)){
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        glm::vec2 pos = InputPoll::GetMousePosition();
 
         frame_buffer.Bind();
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        frame_buffer.ClearFramebuffer(1, -1);
+        Renderer::Begin(camera);
 
-
+        //! @note Processing Event Inputs
+        {
         if (InputPoll::IsKeyPressed(KEY_ESCAPE)){
             glfwSetWindowShouldClose(window, true);
         }
@@ -863,11 +919,13 @@ int main(){
 
             camera.ProcessMouseMovement(0.f, newYPOS);
         }
+        }
 
 
         //! @note Rendering stuff here
 
         // be sure to activate shader when setting uniforms/drawing objects
+        {
         lighting_shader.Bind();
 
         // directional light
@@ -875,41 +933,55 @@ int main(){
         lighting_shader.Set("dir_light.ambient", {0.05f, 0.05f, 0.05f});
         lighting_shader.Set("dir_light.diffuse", {0.4f, 0.4f, 0.4f});
         lighting_shader.Set("dir_light.specular", {0.5f, 0.5f, 0.5f});
+        
+        // testing single point light
+        lighting_shader.Set("pointLightCount", 0);
+        // lighting_shader.Set("point_lights.position", point_light_positions[1]);
+        // lighting_shader.Set("point_light.ambient", {0.05f, 0.05f, 0.05f});
+        // lighting_shader.Set("point_light.diffuse", {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set("point_light.specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("point_light.constant", 1.0f);
+        // lighting_shader.Set("point_light.linear", 0.09f);
+        // lighting_shader.Set("point_light.quadratic", 0.032f);
+
         // point light 1
-        lighting_shader.Set("point_lights[0].position", point_light_positions[0]);
-        lighting_shader.Set("point_lights[0].ambient", {0.05f, 0.05f, 0.05f});
-        lighting_shader.Set("point_lights[0].diffuse", {0.8f, 0.8f, 0.8f});
-        lighting_shader.Set("point_lights[0].specular", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("point_lights[0].constant", 1.0f);
-        lighting_shader.Set("point_lights[0].linear", 0.09f);
-        lighting_shader.Set("point_lights[0].quadratic", 0.032f);
+        // lighting_shader.Set("point_lights[0].position", point_light_positions[0]);
+        // lighting_shader.Set("point_lights[0].ambient", {0.05f, 0.05f, 0.05f});
+        // lighting_shader.Set("point_lights[0].diffuse", {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set("point_lights[0].specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("point_lights[0].constant", 1.0f);
+        // lighting_shader.Set("point_lights[0].linear", 0.09f);
+        // lighting_shader.Set("point_lights[0].quadratic", 0.032f);
+
         // point light 2
-        lighting_shader.Set("point_lights[1].position", point_light_positions[1]);
-        lighting_shader.Set("point_lights[1].ambient", {0.05f, 0.05f, 0.05f});
-        lighting_shader.Set("point_lights[1].diffuse", {0.8f, 0.8f, 0.8f});
-        lighting_shader.Set("point_lights[1].specular", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("point_lights[1].constant", 1.0f);
-        lighting_shader.Set("point_lights[1].linear", 0.09f);
-        lighting_shader.Set("point_lights[1].quadratic", 0.032f);
-        // // point light 3
-        lighting_shader.Set("point_lights[2].position", point_light_positions[2]);
-        lighting_shader.Set("point_lights[2].ambient", {0.05f, 0.05f, 0.05f});
-        lighting_shader.Set("point_lights[2].diffuse", {0.8f, 0.8f, 0.8f});
-        lighting_shader.Set("point_lights[2].specular", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("point_lights[2].constant", 1.0f);
-        lighting_shader.Set("point_lights[2].linear", 0.09f);
-        lighting_shader.Set("point_lights[2].quadratic", 0.032f);
-        // // point light 4
-        lighting_shader.Set("point_lights[3].position", point_light_positions[3]);
-        lighting_shader.Set("point_lights[3].ambient", {0.05f, 0.05f, 0.05f});
-        lighting_shader.Set("point_lights[3].diffuse", {0.8f, 0.8f, 0.8f});
-        lighting_shader.Set("point_lights[3].specular", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("point_lights[3].constant", 1.0f);
-        lighting_shader.Set("point_lights[3].linear", 0.09f);
-        lighting_shader.Set("point_lights[3].quadratic", 0.032f);
+        // lighting_shader.Set("point_lights[1].position", point_light_positions[1]);
+        // lighting_shader.Set("point_lights[1].ambient", {0.05f, 0.05f, 0.05f});
+        // lighting_shader.Set("point_lights[1].diffuse", {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set("point_lights[1].specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("point_lights[1].constant", 1.0f);
+        // lighting_shader.Set("point_lights[1].linear", 0.09f);
+        // lighting_shader.Set("point_lights[1].quadratic", 0.032f);
+        // // // point light 3
+        // lighting_shader.Set("point_lights[2].position", point_light_positions[2]);
+        // lighting_shader.Set("point_lights[2].ambient", {0.05f, 0.05f, 0.05f});
+        // lighting_shader.Set("point_lights[2].diffuse", {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set("point_lights[2].specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("point_lights[2].constant", 1.0f);
+        // lighting_shader.Set("point_lights[2].linear", 0.09f);
+        // lighting_shader.Set("point_lights[2].quadratic", 0.032f);
+        // // // point light 4
+        // lighting_shader.Set("point_lights[3].position", point_light_positions[3]);
+        // lighting_shader.Set("point_lights[3].ambient", {0.05f, 0.05f, 0.05f});
+        // lighting_shader.Set("point_lights[3].diffuse", {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set("point_lights[3].specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("point_lights[3].constant", 1.0f);
+        // lighting_shader.Set("point_lights[3].linear", 0.09f);
+        // lighting_shader.Set("point_lights[3].quadratic", 0.032f);
         // spot light
+        //! @note TOOD: Make a SpotLight class that contains these properties for easier of use
         lighting_shader.Set("spot_light.position", camera.Position);
-        lighting_shader.Set("spot_light.direction", camera.Front);
+        // lighting_shader.Set("spot_light.direction", camera.Front);
+        lighting_shader.Set("spot_light.direction", {1.f, 0.f, 0.f});
         lighting_shader.Set("spot_light.ambient", {0.0f, 0.0f, 0.0f});
         lighting_shader.Set("spot_light.diffuse", {1.0f, 1.0f, 1.0f});
         lighting_shader.Set("spot_light.specular", {1.0f, 1.0f, 1.0f});
@@ -922,19 +994,19 @@ int main(){
 
         //! @note Setting our actual shader struct for the lighting-effect
 
-        lighting_shader.Set(fmt::format("{}.ambient", light_variable_name), {0.1f, 0.1f, 0.1f});
-        lighting_shader.Set(fmt::format("{}.diffuse", light_variable_name), {0.8f, 0.8f, 0.8f});
-        lighting_shader.Set(fmt::format("{}.specular", light_variable_name), {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set(fmt::format("{}.ambient", light_variable_name), {0.1f, 0.1f, 0.1f});
+        // lighting_shader.Set(fmt::format("{}.diffuse", light_variable_name), {0.8f, 0.8f, 0.8f});
+        // lighting_shader.Set(fmt::format("{}.specular", light_variable_name), {1.0f, 1.0f, 1.0f});
 
-        lighting_shader.Set(fmt::format("{}.constant", light_variable_name),  1.0f);
-        lighting_shader.Set(fmt::format("{}.linear", light_variable_name),    0.09f);
-        lighting_shader.Set(fmt::format("{}.quadratic", light_variable_name), 0.032f);
+        // lighting_shader.Set(fmt::format("{}.constant", light_variable_name),  1.0f);
+        // lighting_shader.Set(fmt::format("{}.linear", light_variable_name),    0.09f);
+        // lighting_shader.Set(fmt::format("{}.quadratic", light_variable_name), 0.032f);
 
         // lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
         // lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
         // lighting_shader.Set("material.specular", {0.5f, 0.5f, 0.5f});
         lighting_shader.Set("material.shininess", static_cast<float>(32.0f));
-
+        }
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
@@ -1002,8 +1074,10 @@ int main(){
 
         //! @note This updates, renders, and modifies the cube within our current scene
         //! @note For now just to make things easier on me eyes
+        // lighting_shader.Bind();
+        // lighting_shader.Set("color", glm::vec4{1.f, 1.f, 1.f, 1.f});
         UpdateCube(cube1_position, cube_vao, lighting_shader, container_textures);
-        
+        {
         /*
         lighting_shader.Bind();
         platform_texture.Bind();
@@ -1015,6 +1089,7 @@ int main(){
         Renderer::DrawQuadPrimitive(platform_vao);
         lighting_shader.Unbind();
         */
+        }
         //! @note Rendering platform
         UpdatePlatform(platform_position, platform_vao, lighting_shader, platform_container_textures);
 
@@ -1030,8 +1105,8 @@ int main(){
         //! @note In this case its only the lamp objects that we want to write our shader data to the GPU
         cube_shader.Bind();
         // cube_shader.Set("cameraPos", camera.Position);
-
-        //! @note Creating multiple light objects
+        {
+        // ! @note Creating multiple light objects
         // for(uint32_t i = 0; i < 4; i++){
         //     model = glm::mat4(.5f);
         //     model = glm::translate(model, point_light_positions[i]);
@@ -1041,46 +1116,63 @@ int main(){
         // }
 
         // lamp 1
-        model = glm::mat4(.5f);
-        model = translate(model, point_light_positions[0]);
-        model = glm::scale(model, glm::vec3(0.2f));
-        cube_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(light_cube_vao);
-        // cube_shader.Unbind();
+        // model = glm::mat4(.5f);
+        // model = translate(model, point_light_positions[0]);
+        // model = glm::scale(model, glm::vec3(0.2f));
+        // lighting_shader.Set("model", model);
+        // Renderer::DrawQuadPrimitive(light_cube_vao);
+        // lighting_shader.Unbind();
 
 
-        // lamp 2
+        // // lamp 2
+        //! @note This is the one that we want to see since this one is more visible!
+        /*
+        lighting_shader.Bind();
         model = glm::mat4(.5f);
         model = translate(model, point_light_positions[1]);
         model = glm::scale(model, glm::vec3(0.2f));
-        cube_shader.Set("model", model);
+        lighting_shader.Set("model", model);
         Renderer::DrawQuadPrimitive(light_cube_vao);
+        lighting_shader.Unbind();
+        */
+        //! @note Customizing my point light creation
+        // my_pointlight.OnUpdate(camera, projection);
 
-        // lamp 3
-        model = glm::mat4(.5f);
-        model = translate(model, point_light_positions[2]);
-        model = glm::scale(model, glm::vec3(0.2f));
-        cube_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(light_cube_vao);
+        // // lamp 3
+        // lighting_shader.Bind();
+        // model = glm::mat4(.5f);
+        // model = translate(model, point_light_positions[2]);
+        // model = glm::scale(model, glm::vec3(0.2f));
+        // lighting_shader.Set("model", model);
+        // Renderer::DrawQuadPrimitive(light_cube_vao);
+        // lighting_shader.Bind();
 
-        // lamp 4
-        model = glm::mat4(.5f);
-        model = translate(model, point_light_positions[3]);
-        model = glm::scale(model, glm::vec3(0.2f));
-        cube_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(light_cube_vao);
-        cube_shader.Unbind();
-
+        // // lamp 4
+        // lighting_shader.Bind();
+        // model = glm::mat4(.5f);
+        // model = translate(model, point_light_positions[3]);
+        // model = glm::scale(model, glm::vec3(0.2f));
+        // lighting_shader.Set("model", model);
+        // Renderer::DrawQuadPrimitive(light_cube_vao);
+        // lighting_shader.Unbind();
+        }
 
         //! @note Drawing our model
         lighting_shader.Bind();
         test_model.Draw(lighting_shader, model_position, model_scale, model_rotation, model_rotation_angle);
+        lighting_shader.Unbind();
+
+        //! @note drawing model2
+        lighting_shader.Bind();
+        test_model2.Draw(lighting_shader, model_position2, model_scale2, model_rotation2, model_rotation_angle);
         lighting_shader.Unbind();
         
         // -------------------------------------------
         //! @note Rendering skybox
         //! @note drawing cubemap stuff
         // -------------------------------------------
+        {
+        /*
         cubemap_shader.Bind();
         cubemap_shader.Set("model", model);
         cubemap_shader.Set("view", view);
@@ -1090,10 +1182,12 @@ int main(){
         cubemap_texture.Bind();
         glDrawArrays(GL_TRIANGLES, 0, 36);
         cube_vao.Unbind();
+        */
 
         // glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //! @note Rendering skybox
+        /*
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         
         skybox_shader.Bind();
@@ -1107,6 +1201,13 @@ int main(){
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glDepthFunc(GL_LESS);
         skybox_vao.Unbind();
+        */
+        }
+
+        Renderer::DrawEnvironmentMap(environment_map, projection, width, height);
+
+
+        Renderer::End();
 
         frame_buffer.Unbind();
 
@@ -1116,7 +1217,10 @@ int main(){
 
         //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
-        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position](){
+
+
+        // DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position, &model_position2, &model_scale2, &model_rotation2, &camera, &camera_sensitivity, &camera_mouse_sensitivity, &my_pointlight, &pointlight_pos_test, &pointlight_scale_test, &pointlight_rotation_test](){
+        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position, &model_position2, &model_scale2, &model_rotation2, &camera, &camera_sensitivity, &camera_mouse_sensitivity](){
             // ImGui::Begin("Properties Panel");
             //! @note These transform panels are for messing around with various objects
             //! @note Eventually I'll make an attempt at actually having "proper" scene management system in place for making life-easier, but as of right now not the point of this project
@@ -1138,6 +1242,24 @@ int main(){
             DrawVec3UI("model rotation", model_rotation);
             DrawFloatUI("model angle", model_rotation_angle);
             DrawVec3UI("geometry", geometry_position);
+
+            DrawVec3UI("model2 pos", model_position2);
+            DrawVec3UI("model2 scale", model_scale2);
+            DrawVec3UI("model2 rotation", model_rotation2);
+            DrawFloatUI("camera sensitivity", camera_sensitivity);
+            DrawFloatUI("camera mouse sensitivity", camera_mouse_sensitivity);
+
+            DrawVec3UI("geometry pos", geometry_position);
+            // DrawVec3UI("pl pos 1", pointlight_pos_test);
+            // DrawVec3UI("pl scale 1", pointlight_scale_test);
+            // DrawVec3UI("pl rotate 1", pointlight_rotation_test);
+
+            camera.SetCameraMovementSpeed(camera_sensitivity);
+            camera.SetCameraMouseSpeed(camera_mouse_sensitivity);
+
+            // my_pointlight.SetPosition(pointlight_pos_test);
+            // my_pointlight.SetScale(pointlight_scale_test);
+            // my_pointlight.SetRotation(pointlight_rotation_test);
 
 
             // Begin drag-drop sources
@@ -1163,6 +1285,29 @@ int main(){
 
             ImGui::End();
         });
+
+
+        // auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+		// auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+		// // @note If tab bar is expanded, then the cursor will be expanded
+		// auto viewportOffset = ImGui::GetWindowPos();
+
+		// viewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
+		// viewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
+
+        // auto[mouseX, mouseY] = ImGui::GetMousePos();
+        // mouseX -= viewportBounds[0].x;
+        // mouseY -= viewportBounds[0].y;
+
+        // glm::vec2 viewportSize = viewportBounds[1] - viewportBounds[0];
+		// mouseY = viewportSize.y - mouseY; // This makes our bottom left (0, 0)
+		// int current_mouse_x = (int)mouseX;
+		// int current_mouse_y = (int)mouseY;
+        // int pixel = frame_buffer.Read(1, current_mouse_x, current_mouse_y);
+        // fmt::print("Framebuffer Read Pixel = {}\n", pixel);
+
+        // fmt::print("camera sensitivity = {}\n", camera_sensitivity);
+        // fmt::print("new camera sensitivity set = {}\n", camera.GetCameraSensitivity());
         //! @note EndFrame ends per frame for entire imgui setup
         EndFrame(window, width, height);
 

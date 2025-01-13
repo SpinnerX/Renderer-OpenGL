@@ -17,6 +17,7 @@ build_application(
     src/Renderer-OpenGL/MeshImporter.cpp
     src/Renderer-OpenGL/EnvironmentMap.cpp
     src/Renderer-OpenGL/TextureCubemap.cpp
+    src/Renderer-OpenGL/PointLight.cpp
     src/Renderer-OpenGL/Renderer.cpp
     Application.cpp
     

@@ -4,6 +4,7 @@
 
 class TextureCubemap{
 public:
+    TextureCubemap() = default;
     TextureCubemap(std::span<std::string>);
     void Bind();
     void Unbind();
