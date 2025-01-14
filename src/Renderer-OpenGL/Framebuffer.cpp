@@ -173,9 +173,18 @@ void Framebuffer::OnCreate(uint32_t Width, uint32_t Height){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    //! @note Handling our render buffer object
+    //! @note They are objects that contain images. Used specifically with framebuffer objects
+    uint32_t renderBufferObject;
+    glGenRenderbuffers(1, &renderBufferObject);
+    glBindRenderbuffer(GL_RENDERBUFFER, renderBufferObject);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, Width, Height);
+    glBindFramebuffer(GL_FRAMEBUFFER, renderBufferObject);
+
     // attaching color attachment to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
-    
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBufferObject);
+
     //! @note Setting depth attachment
     glGenTextures(1, &m_DepthAttachment);
     glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);

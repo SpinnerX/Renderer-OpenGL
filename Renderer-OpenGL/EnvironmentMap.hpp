@@ -11,14 +11,17 @@ public:
     // EnvironmentMap(const std::string& p_Filepath);
     EnvironmentMap(std::span<std::string> p_Faces);
 
+    //! @note Used for loading .hdr maps
+    EnvironmentMap(const std::string& p_Filepath, bool isHDRIEnabled=false);
+
     bool IsLoaded() const;
 
     void Bind();
     void Unbind();
 
     void OnUpdate(Camera& camera, glm::mat4& projection, uint32_t width, uint32_t height);
-
 private:
+    bool usingHDR = false;
     VertexArray m_CubemapVao;
     VertexArray m_SkyboxVao;
     TextureCubemap m_CubemapTextures;
@@ -28,4 +31,7 @@ private:
 
     Shader m_CubemapShader;
     Shader m_SkyboxShader;
+    Shader hdrShader;
+
+    uint32_t m_HdrMap;
 };

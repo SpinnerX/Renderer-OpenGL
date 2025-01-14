@@ -1,5 +1,5 @@
+#include "Renderer-OpenGL/Components.hpp"
 #include "Renderer-OpenGL/EnvironmentMap.hpp"
-#include "Renderer-OpenGL/PointLight.hpp"
 #include <Renderer-OpenGL/Renderer.hpp>
 #include <Renderer-OpenGL/Shader.hpp>
 #include <array>
@@ -21,6 +21,7 @@
 #include <imgui.h>
 #include <span>
 #include <Renderer-OpenGL/ModelTutorial.hpp>
+#include <imgui.h>
 
 static void ImGuiLayoutColorModification(){
     auto& colors = ImGui::GetStyle().Colors; // @note Colors is ImVec4
@@ -85,114 +86,58 @@ static void EndFrame(GLFWwindow* Window, uint32_t width, uint32_t height){
 }
 
 void DockspaceWindow(GLFWwindow* window, int Width, int Height, Framebuffer& frame_buffer, const std::function<void()>& p_UpdateUI){
-    // READ THIS !!!
-    // TL;DR; this demo is more complicated than what most users you would normally use.
-    // If we remove all options we are showcasing, this demo would become:
-    //     void ShowExampleAppDockSpace()
-    //     {
-    //         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-    //     }
-    // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
-    // In this specific demo, we are not using DockSpaceOverViewport() because:
-    // - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
-    // - (2) we allow the host window to have padding (when opt_padding == true)
-    // - (3) we expose many flags and need a way to have them visible.
-    // - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
-    //      in your code, but we don't here because we allow the window to be floating)
 
-    static bool docking_enabled = true;
-    static bool opt_fullscreen = true;
-    static bool opt_padding = false;
+    bool dockspace_open = true;
+    static bool opt_fullscreen_persistant = true;
+    bool opt_fullscreen = opt_fullscreen_persistant;
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
-    // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-    // because it would be confusing to have two docking targets within each others.
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    
-    if (opt_fullscreen){
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
+
+    if(opt_fullscreen){
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
         ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
         window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
     }
-    else{
-        dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
-    }
 
-    // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
-    // and handle the pass-thru hole, so we ask Begin() to not render a background.
-    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode){
+    if(dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode){
         window_flags |= ImGuiWindowFlags_NoBackground;
     }
 
-    // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-    // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-    // all active windows docked into it will lose their parent and become undocked.
-    // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-    // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
-    if (!opt_padding)
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace Demo", &docking_enabled, window_flags);
-    if (!opt_padding)
-        ImGui::PopStyleVar();
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Dockspace Demo", &dockspace_open, window_flags);
+    ImGui::PopStyleVar();
 
-    if (opt_fullscreen)
+    if(opt_fullscreen){
         ImGui::PopStyleVar(2);
-
-    // Submit the DockSpace
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable){
-        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
-    if (ImGui::BeginMenuBar()){
-        if (ImGui::BeginMenu("Options")){
-            // Disabling fullscreen would allow the window to be moved to the front of other windows,
-            // which we can't undo at the moment without finer window depth/z control.
-            ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
-            ImGui::MenuItem("Padding", NULL, &opt_padding);
-            ImGui::Separator();
+    // Dockspace
+    ImGuiIO& io = ImGui::GetIO();
+    if(io.ConfigFlags & ImGuiConfigFlags_DockingEnable){
+        ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.f, 0.f), dockspace_flags);
+    }
 
-            if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingOverCentralNode) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode; }
-            if (ImGui::MenuItem("Flag: NoDockingSplit",         "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingSplit) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit; }
-            if (ImGui::MenuItem("Flag: NoUndocking",            "", (dockspace_flags & ImGuiDockNodeFlags_NoUndocking) != 0))                { dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking; }
-            if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                   { dockspace_flags ^= ImGuiDockNodeFlags_NoResize; }
-            if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar; }
-            if (ImGui::MenuItem("Flag: PassthruCentralNode",    "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) { dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode; }
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Close Dockspace", nullptr, false)){
-                glfwSetWindowShouldClose(window, true);
-            }
-            ImGui::EndMenu();
+    if(ImGui::BeginMenuBar()){
+        if(ImGui::MenuItem("Exit")){
+            glfwSetWindowShouldClose(window, true);
         }
+
         ImGui::EndMenuBar();
     }
 
-    // Before we render we add render style
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
     ImGui::Begin("Viewport");
-
-    //! @note This is to ensure that we are resizing our framebuffer to fit our window-resized event
-    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-    // fmt::print("viewportPanelSize.x = {} and viewportPanelSize.y = {}\n", viewportPanelSize.x, viewportPanelSize.y);
-    if(Width != viewportPanelSize.x and Height != viewportPanelSize.y and viewportPanelSize.x > 0 and viewportPanelSize.y > 0){
-        frame_buffer.OnViewportResize((uint32_t)Width, (uint32_t)Height);
-    }
-    // if(Width != )
-
     auto fb_id = frame_buffer.GetColorAttachmentID();
     ImGui::Image((void*)fb_id, ImVec2(Width, Height));
+    ImGui::End();
 
+    ImGui::Begin("Panels");
     p_UpdateUI();
     ImGui::End();
-    ImGui::PopStyleVar();
 
     ImGui::End();
 }
@@ -216,11 +161,15 @@ static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_
 
     ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    
+    float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+    ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
+
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
 
-    if(ImGui::Button("X")){
+    if(ImGui::Button("X", buttonSize)){
         Position.x = reset_value;
         // ImGui::End();
     }
@@ -239,7 +188,7 @@ static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2, 0.1f, 0.2f, 1.0f});
 
-    if(ImGui::Button("Y")){
+    if(ImGui::Button("Y", buttonSize)){
         Position.y = reset_value;
         // ImGui::End();
     }
@@ -255,7 +204,7 @@ static void DrawVec3UI(const std::string& Tag, glm::vec3& Position, float reset_
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1, 0.25f, 0.8f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8, 0.1f, 0.15f, 1.0f});
-    if(ImGui::Button("Z")){
+    if(ImGui::Button("Z", buttonSize)){
         Position.z = reset_value;
         // ImGui::End();
     }
@@ -314,9 +263,55 @@ static void DrawFloatUI(const std::string& Tag, float& value, float reset_value=
     ImGui::PopID();
 }
 
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-    // glViewport(0, 0, width, height);
+/*
+
+Parameters
+T = is the type the component we want to draw to the UI
+UFunction = callback that defines what data in the component to be displayed in this panel that handles the UI layout of that component
+
+USAGE:
+
+DrawPanelCompoent<Component>("Transform", [](){
+    DrawVec3("Position", SomePosition);
+    // etc....
+});
+
+*/
+
+template<typename T, typename UFunction>
+static void DrawPanelComponent(const std::string& Tag, const UFunction& p_UFunction){
+    const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+
+    ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4,4});
+
+    float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+    ImGui::Separator();
+
+    bool opened = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, "%s", Tag.c_str());
+    ImGui::PopStyleVar();
+
+    ImGui::SameLine(contentRegion.x - lineHeight * 0.05f);
+
+    if(ImGui::Button("+", ImVec2(lineHeight, lineHeight))){
+        ImGui::OpenPopup("ComponentSettings");
+    }
+
+    bool isRemovedComponent = false; // @note for deferring when to delete component.
+    if(ImGui::BeginPopup("ComponentSettings")){
+        if(ImGui::MenuItem("Remove Component"))
+            isRemovedComponent = true;
+
+        ImGui::EndPopup();
+    }
+
+    if(opened){
+        p_UFunction();
+        ImGui::TreePop();
+    }
+
 }
+
 
 //! @note These are just to initialize a few objects within our scene
 //! @note Typically this would be done in their own respective mesh classes (or something like that)
@@ -371,107 +366,6 @@ void InitializeCube(VertexArray& vao){
     vao = VertexArray(&vbo);
 }
 
-/*
-void InitializeCubemap(VertexArray& vao){
-    float cubeVertices[] = {
-        // positions          // normals
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-    };
-
-    VertexBuffer cubemap_vbo = VertexBuffer(cubeVertices);
-    vao = VertexArray(&cubemap_vbo);
-}
-
-void InitializeSkybox(VertexArray& vao){
-    float skyboxVertices[] = {
-        // positions          
-        -1.0f,  1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-        -1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f
-    };
-
-    VertexBuffer skybox_vbo = VertexBuffer(skyboxVertices);
-    vao = VertexArray(&skybox_vbo);
-}
-*/
 
 void InitializePlatform(VertexArray& vao){
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -540,8 +434,6 @@ void UpdatePlatform(const glm::vec3& Position, VertexArray& platform_vao, Shader
     
 }
 
-void UpdateAndRenderLightLamps(const glm::vec3& Position, VertexArray& lamp_vao, Shader& shader, std::span<Texture2D> p_Textures){
-}
 
 int main(){
     // camera
@@ -649,7 +541,7 @@ int main(){
     //     {VertexAttributeType::FLOAT2, "aTexCoords", false}
     // });
 
-    PointLight my_pointlight = PointLight("Point light 1");
+    // PointLight my_pointlight = PointLight("Point light 1");
 
     Texture2D container_diffuse = Texture2D("assets/container_diffuse.png");
     Texture2D container_specular = Texture2D("assets/container_specular.png");
@@ -661,6 +553,7 @@ int main(){
     lighting_shader.Bind();
     lighting_shader.Set("material.diffuse", 0);
     lighting_shader.Set("material.specular", 1);
+    lighting_shader.Set("material.emission", 2);
     // lighting_shader.Unbind();
 
     // lighting
@@ -772,9 +665,20 @@ int main(){
     */
     }
 
-   EnvironmentMap environment_map = EnvironmentMap(faces);
+    // EnvironmentMap environment_map = EnvironmentMap(faces);
 
-    //! @note Configuring Framebuffers
+    library.Add(
+        Shader(
+        "shaders/actual_shaders/environment/hdr.vs", 
+        "shaders/actual_shaders/environment/hdr.fs"
+        )
+    );
+
+    //! @note Rather then loading a skybox, we are going to load .hdri maps instead for our environments
+    EnvironmentMap environment_map = EnvironmentMap("assets/environments/newport_loft.hdr", true);
+
+    //! @note TODO: Configuring Framebuffer attachments
+    //! @note Having multiple frame buffers for handling shadow-passes, geometry-passes, etc. For post-processing effects
     // FramebufferAttachments attachments = {
     //     {
     //         FramebufferAttachmentType::DEPTH
@@ -810,25 +714,36 @@ int main(){
         {VertexAttributeType::FLOAT3, "aNormal", false},
     });
 
-    // Model test_model2("assets/backpack/backpack.obj");
-    std::array<Texture2D, 2> texture2 = {
-        Texture2D("assets/obj-nat-rock-01/textures/diffuse.jpeg"),
-        Texture2D("assets/obj-nat-rock-01/textures/normal.jpeg")
+    std::array<Texture2D, 6> model2_textures = {
+        Texture2D("assets/blue-archive-kaiser-pmc-military-robots/textures/mat1_c.jpg")
     };
-    // Model test_model2("assets/obj-nat-rock-01/source/rock.obj", true, texture2);
-    // Model test_model2("assets/XArmour.fbx");
-    Model test_model2("assets/Bloom.obj");
-    // std::array<Texture2D, 6> texture_mappings2 = {
-    //     Texture2D("assets/robo-pose/textures/Texture_1K.jpg"),
-    //     Texture2D("assets/robo-pose/textures/LP_BodyNormalsMap_1K.jpg"),
-    //     Texture2D("assets/robo-pose/textures/specular.jpeg"),
-    //     Texture2D("assets/robo-pose/textures/diffuse.jpeg"),
-    // };
-    // Model test_model2("assets/robo-pose/source/robot-pose.obj", true, texture_mappings2);
+    Model test_model2("assets/blue-archive-kaiser-pmc-military-robots/source/Kaiser PMC Military Robots Blue Archive.obj", true, model2_textures);
 
-    glm::vec3 model_position2 = {8.50f, 0.50f, 0.f};
-    glm::vec3 model_scale2 = {.1f, .1f, .1f};
+    // model2 properties
+    glm::vec3 model_position2 = {8.50, 0.50, 7.60};
+    glm::vec3 model_scale2 = {0.3, 0.3, 0.3};
     glm::vec3 model_rotation2 = {0.f, 0.f, 1.f};
+
+
+
+    std::array<Texture2D, 7> model3_textures = {
+        Texture2D("assets/mule_robot/textures/boot3_specularGlossiness.png"),
+        Texture2D("assets/mule_robot/textures/boot3_diffuse.jpeg"),
+        Texture2D("assets/mule_robot/textures/boot3_normal.jpeg"),
+        Texture2D("assets/mule_robot/textures/mateshadows_diffuse.png"),
+        Texture2D("assets/mule_robot/textures/boot3_emissive.jpeg"),
+        Texture2D("assets/mule_robot/textures/boot3_occlusion.png"),
+    };
+
+    // Model test_model3("assets/mule_robot/scene.gltf", true, model3_textures);
+    Model test_model3("dont worry about this not loading...");
+    
+    glm::vec3 model_position3 = {8.50, 0.50, 7.60};
+    glm::vec3 model_scale3 = {0.9, 0.9, 0.9};
+    glm::vec3 model_rotation3 = {0.f, 0.f, 1.f};
+    
+    
+    
     float camera_sensitivity = 5.f;
     float camera_mouse_sensitivity = 0.1;
 
@@ -842,6 +757,14 @@ int main(){
 
     Renderer::SetViewport(width, height);
 
+    Shader hdr_shader = library.Get("hdr");
+    hdr_shader.Set("equirectangularMap", 0);
+
+    //! @note Lighting Properties
+    DirectionLight dir_light;
+    SpotLight spot_light;
+    spot_light.cut_off = glm::cos(glm::radians(12.5f));
+    spot_light.outer_cut_off = glm::cos(glm::radians(15.0f));
 
     std::array<glm::vec2, 2> viewportBounds;
     //! @note TO ENABLE ANTI_ALIASING
@@ -903,6 +826,22 @@ int main(){
                 float velocity = x_offset * deltaTime;
                 camera.ProcessMouseMovement(-velocity, 0.f);
             }
+
+            if(InputPoll::IsMousePressed(MOUSE_BUTTON_MIDDLE)){
+                double xPosIn, yPosIn;
+                glfwGetCursorPos(window, &xPosIn, &yPosIn);
+                float velocity = yPosIn * deltaTime;
+                camera.ProcessMouseMovement(0.f, velocity);
+            }
+
+            if(InputPoll::IsKeyPressed(KEY_SPACE)){
+                double xPosIn, yPosIn;
+                glfwGetCursorPos(window, &xPosIn, &yPosIn);
+                float velocity = yPosIn * deltaTime;
+                camera.ProcessMouseMovement(0.f, -velocity);
+            }
+
+
         }
 
         if(InputPoll::IsMousePressed(MOUSE_BUTTON_MIDDLE)){
@@ -938,13 +877,15 @@ int main(){
         lighting_shader.Bind();
 
         // directional light
-        lighting_shader.Set("dir_light.direction", {-0.2f, -1.0f, -0.3f});
-        lighting_shader.Set("dir_light.ambient", {0.05f, 0.05f, 0.05f});
-        lighting_shader.Set("dir_light.diffuse", {0.4f, 0.4f, 0.4f});
-        lighting_shader.Set("dir_light.specular", {0.5f, 0.5f, 0.5f});
+        lighting_shader.Set("dir_light.direction", dir_light.Direction);
+        lighting_shader.Set("dir_light.ambient", dir_light.ambient);
+        lighting_shader.Set("dir_light.diffuse", dir_light.diffuse);
+        lighting_shader.Set("dir_light.specular", dir_light.specular);
         
         // testing single point light
         lighting_shader.Set("pointLightCount", 0);
+        lighting_shader.Set("directionLightCount", 1);
+        lighting_shader.Set("spotLightCount", 1);
         // lighting_shader.Set("point_lights.position", point_light_positions[1]);
         // lighting_shader.Set("point_light.ambient", {0.05f, 0.05f, 0.05f});
         // lighting_shader.Set("point_light.diffuse", {0.8f, 0.8f, 0.8f});
@@ -987,29 +928,29 @@ int main(){
         // lighting_shader.Set("point_lights[3].linear", 0.09f);
         // lighting_shader.Set("point_lights[3].quadratic", 0.032f);
         // spot light
+        // Unused: Keeping it here for now...
+        // lighting_shader.Set("spot_light.direction", camera.Front);
         //! @note TOOD: Make a SpotLight class that contains these properties for easier of use
         lighting_shader.Set("spot_light.position", camera.Position);
-        // lighting_shader.Set("spot_light.direction", camera.Front);
-        lighting_shader.Set("spot_light.direction", {1.f, 0.f, 0.f});
-        lighting_shader.Set("spot_light.ambient", {0.0f, 0.0f, 0.0f});
-        lighting_shader.Set("spot_light.diffuse", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("spot_light.specular", {1.0f, 1.0f, 1.0f});
-        lighting_shader.Set("spot_light.constant", 1.0f);
-        lighting_shader.Set("spot_light.linear", 0.09f);
-        lighting_shader.Set("spot_light.quadratic", 0.032f);
-        lighting_shader.Set("spot_light.cut_off", glm::cos(glm::radians(12.5f)));
-        lighting_shader.Set("spot_light.outer_cut_off", glm::cos(glm::radians(15.0f)));
-        //! @note Setting the directional lighting to be set to our front camera point to the objects
+        lighting_shader.Set("spot_light.direction", spot_light.Direction);
+        lighting_shader.Set("spot_light.ambient", spot_light.ambient);
+        lighting_shader.Set("spot_light.diffuse", spot_light.diffuse);
+        lighting_shader.Set("spot_light.specular", spot_light.specular);
+        lighting_shader.Set("spot_light.constant", spot_light.constant);
+        lighting_shader.Set("spot_light.linear", spot_light.linear);
+        lighting_shader.Set("spot_light.quadratic", spot_light.quadratic);
+        
+        // lighting_shader.Set("spot_light.direction", {1.f, 0.f, 0.f});
+        // lighting_shader.Set("spot_light.ambient", {0.0f, 0.0f, 0.0f});
+        // lighting_shader.Set("spot_light.diffuse", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("spot_light.specular", {1.0f, 1.0f, 1.0f});
+        // lighting_shader.Set("spot_light.constant", 1.0f);
+        // lighting_shader.Set("spot_light.linear", 0.09f);
+        // lighting_shader.Set("spot_light.quadratic", 0.032f);
+        lighting_shader.Set("spot_light.cut_off", spot_light.cut_off);
+        lighting_shader.Set("spot_light.outer_cut_off", spot_light.outer_cut_off);
 
-        //! @note Setting our actual shader struct for the lighting-effect
-
-        // lighting_shader.Set(fmt::format("{}.ambient", light_variable_name), {0.1f, 0.1f, 0.1f});
-        // lighting_shader.Set(fmt::format("{}.diffuse", light_variable_name), {0.8f, 0.8f, 0.8f});
-        // lighting_shader.Set(fmt::format("{}.specular", light_variable_name), {1.0f, 1.0f, 1.0f});
-
-        // lighting_shader.Set(fmt::format("{}.constant", light_variable_name),  1.0f);
-        // lighting_shader.Set(fmt::format("{}.linear", light_variable_name),    0.09f);
-        // lighting_shader.Set(fmt::format("{}.quadratic", light_variable_name), 0.032f);
+        // lighting_shader.Set(fmt::format("{}.ambient", l
 
         // lighting_shader.Set("material.ambient", {1.0f, 0.5f, 0.31f});
         // lighting_shader.Set("material.diffuse", {1.0f, 0.5f, 0.31f});
@@ -1017,7 +958,10 @@ int main(){
         lighting_shader.Set("material.shininess", static_cast<float>(32.0f));
         }
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)width/(float)height, 0.1f, 100.0f);
+        // glm::mat4 projection = glm::ortho(0.0f, 1000.0f, 0.0f, 1000.0f, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
+
+        hdr_shader.Set("projection", projection);
 
 
         lighting_shader.Set("projection", projection);
@@ -1028,44 +972,6 @@ int main(){
         glm::mat4 model = glm::mat4(1.0f);
         lighting_shader.Set("model", model);
 
-        //! @note APPLYING TEXTURES
-        //! @note If I add an editor here are a few things to add related to the diffuse and specular-added textures
-        //! @note Add a toggle for enabling which parts of the textures like diffuse or specular to be toggled
-
-        //! @note Generating a bunch of cubes
-        /*
-        for(uint32_t i = 0; i < 10; i++){
-            glm::mat4 reset_model = glm::mat4(1.0);
-            model = glm::translate(model, cube_positions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            lighting_shader.Bind();
-            lighting_shader.Set("model", model);
-            //! @note IF you want specific objects to show reflections.
-            //! @note YOU must specifically bind those specific shaders to those objects.
-            //! @note In this example I choose to set our cubes to use reflections off of the cubemap
-            // cubemap_shader.Bind();
-            // cubemap_shader.Set("model", model);
-            container_diffuse.Bind();
-            container_specular.Bind(1);
-            Renderer::DrawQuadPrimitive(cube_vao);
-            container_diffuse.Unbind();
-            container_specular.Unbind();
-        }
-        */
-
-        //! @note Calling this cube1
-        /*
-        lighting_shader.Bind();
-        model = glm::translate(model, cube1_position);
-        lighting_shader.Set("model", model);
-        container_diffuse.Bind();
-        container_specular.Bind(1);
-        Renderer::DrawQuadPrimitive(cube_vao);
-        container_diffuse.Unbind();
-        container_specular.Unbind();
-        lighting_shader.Unbind();
-        */
 
        //! @note Testing geometry cube
         geometry_shader.Bind();
@@ -1086,19 +992,6 @@ int main(){
         // lighting_shader.Bind();
         // lighting_shader.Set("color", glm::vec4{1.f, 1.f, 1.f, 1.f});
         UpdateCube(cube1_position, cube_vao, lighting_shader, container_textures);
-        {
-        /*
-        lighting_shader.Bind();
-        platform_texture.Bind();
-        // lighting_shader.Set("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, platform_position);
-        // lighting_shader.Set("projection", projection);
-        lighting_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(platform_vao);
-        lighting_shader.Unbind();
-        */
-        }
         //! @note Rendering platform
         UpdatePlatform(platform_position, platform_vao, lighting_shader, platform_container_textures);
 
@@ -1113,58 +1006,6 @@ int main(){
         //! @note We only bind to the data we want.
         //! @note In this case its only the lamp objects that we want to write our shader data to the GPU
         cube_shader.Bind();
-        // cube_shader.Set("cameraPos", camera.Position);
-        {
-        // ! @note Creating multiple light objects
-        // for(uint32_t i = 0; i < 4; i++){
-        //     model = glm::mat4(.5f);
-        //     model = glm::translate(model, point_light_positions[i]);
-        //     model = glm::scale(model, glm::vec3(0.2f));
-        //     cube_shader.Set("model", model);
-        //     Renderer::DrawQuadPrimitive(light_cube_vao);
-        // }
-
-        // lamp 1
-        // model = glm::mat4(.5f);
-        // model = translate(model, point_light_positions[0]);
-        // model = glm::scale(model, glm::vec3(0.2f));
-        // lighting_shader.Set("model", model);
-        // Renderer::DrawQuadPrimitive(light_cube_vao);
-        // lighting_shader.Unbind();
-
-
-        // // lamp 2
-        //! @note This is the one that we want to see since this one is more visible!
-        /*
-        lighting_shader.Bind();
-        model = glm::mat4(.5f);
-        model = translate(model, point_light_positions[1]);
-        model = glm::scale(model, glm::vec3(0.2f));
-        lighting_shader.Set("model", model);
-        Renderer::DrawQuadPrimitive(light_cube_vao);
-        lighting_shader.Unbind();
-        */
-        //! @note Customizing my point light creation
-        // my_pointlight.OnUpdate(camera, projection);
-
-        // // lamp 3
-        // lighting_shader.Bind();
-        // model = glm::mat4(.5f);
-        // model = translate(model, point_light_positions[2]);
-        // model = glm::scale(model, glm::vec3(0.2f));
-        // lighting_shader.Set("model", model);
-        // Renderer::DrawQuadPrimitive(light_cube_vao);
-        // lighting_shader.Bind();
-
-        // // lamp 4
-        // lighting_shader.Bind();
-        // model = glm::mat4(.5f);
-        // model = translate(model, point_light_positions[3]);
-        // model = glm::scale(model, glm::vec3(0.2f));
-        // lighting_shader.Set("model", model);
-        // Renderer::DrawQuadPrimitive(light_cube_vao);
-        // lighting_shader.Unbind();
-        }
 
         //! @note Drawing our model
         lighting_shader.Bind();
@@ -1175,44 +1016,15 @@ int main(){
         lighting_shader.Bind();
         test_model2.Draw(lighting_shader, model_position2, model_scale2, model_rotation2, model_rotation_angle);
         lighting_shader.Unbind();
+
+        lighting_shader.Bind();
+        test_model3.Draw(lighting_shader, model_position3, model_scale3, model_rotation3, model_rotation_angle);
+        lighting_shader.Unbind();
         
         // -------------------------------------------
         //! @note Rendering skybox
         //! @note drawing cubemap stuff
         // -------------------------------------------
-        {
-        /*
-        cubemap_shader.Bind();
-        cubemap_shader.Set("model", model);
-        cubemap_shader.Set("view", view);
-        cubemap_shader.Set("projection", projection);
-        cubemap_shader.Set("cameraPos", camera.Position);
-        cube_vao.Bind();
-        cubemap_texture.Bind();
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        cube_vao.Unbind();
-        */
-
-        // glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        //! @note Rendering skybox
-        /*
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        
-        skybox_shader.Bind();
-        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-        skybox_shader.Set("view", view);
-        skybox_shader.Set("projection", projection);
-
-        // skybox cube
-        skybox_vao.Bind();
-        cubemap_texture.Bind();
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glDepthFunc(GL_LESS);
-        skybox_vao.Unbind();
-        */
-        }
-
         Renderer::DrawEnvironmentMap(environment_map, projection, width, height);
 
 
@@ -1220,103 +1032,73 @@ int main(){
 
         frame_buffer.Unbind();
 
-        //! @note OnUI Update. This should be done after be bind our frame buffer to our scene
-        //! @note This is just a quick and easy way to getting widgets setup with imgui
-        //! @note Meaning these widgets can be associated with the viewport itself.
-
         //! @note BeginFrame starts imgui frame for entire UI
         BeginFrame();
 
 
         // DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position, &model_position2, &model_scale2, &model_rotation2, &camera, &camera_sensitivity, &camera_mouse_sensitivity, &my_pointlight, &pointlight_pos_test, &pointlight_scale_test, &pointlight_rotation_test](){
-        DockspaceWindow(window, width, height, frame_buffer, [&platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position, &model_position2, &model_scale2, &model_rotation2, &camera, &camera_sensitivity, &camera_mouse_sensitivity](){
-            // ImGui::Begin("Properties Panel");
-            //! @note These transform panels are for messing around with various objects
-            //! @note Eventually I'll make an attempt at actually having "proper" scene management system in place for making life-easier, but as of right now not the point of this project
-            // ImGui::Begin("Transforms Panels");
-            
-            ImGui::Begin("Platform Properties");
+        // DockspaceWindow(window, width, height, frame_buffer, [&spot_light, &dir_light, &platform_position, &cube1_position, &point_light_positions, &model_position, &model_scale, &model_rotation_angle, &model_rotation, &test_model, &geometry_position, &model_position2, &model_scale2, &model_rotation2, &camera, &camera_sensitivity, &camera_mouse_sensitivity, &model_position3, &model_scale3, &model_rotation3](){
+        DockspaceWindow(window, width, height, frame_buffer, [&](){
+            ImGui::Begin("Properties Panel");
+            auto contentRegion = ImGui::GetContentRegionAvail();
+
+            // float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f; // @note calculating height of button
+            float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
             
             
             //! @note TODO: Eventually have this be easily modifyable by not specifying the name of transforms they are associated with
             //! @note Rather just call transform and make this better
-            DrawVec3UI("platform", platform_position);
-            DrawVec3UI("cube1", cube1_position);
-            DrawVec3UI("light pos 1", point_light_positions[0]);
-            DrawVec3UI("light pos 2", point_light_positions[1]);
-            DrawVec3UI("light pos 3", point_light_positions[2]);
-            DrawVec3UI("light pos 4", point_light_positions[3]);
-            DrawVec3UI("model", model_position);
-            DrawVec3UI("model scale", model_scale);
-            DrawVec3UI("model rotation", model_rotation);
-            DrawFloatUI("model angle", model_rotation_angle);
-            DrawVec3UI("geometry", geometry_position);
 
-            DrawVec3UI("model2 pos", model_position2);
-            DrawVec3UI("model2 scale", model_scale2);
-            DrawVec3UI("model2 rotation", model_rotation2);
-            DrawFloatUI("camera sensitivity", camera_sensitivity);
-            DrawFloatUI("camera mouse sensitivity", camera_mouse_sensitivity);
+            DrawPanelComponent<Model>("Scene Property", [&](){
+                DrawVec3UI("platform", platform_position);
+                DrawVec3UI("cube1", cube1_position);
+                DrawFloatUI("camera sensitivity", camera_sensitivity);
+                DrawFloatUI("camera mouse sensitivity", camera_mouse_sensitivity);
+            });
 
-            DrawVec3UI("geometry pos", geometry_position);
-            // DrawVec3UI("pl pos 1", pointlight_pos_test);
-            // DrawVec3UI("pl scale 1", pointlight_scale_test);
-            // DrawVec3UI("pl rotate 1", pointlight_rotation_test);
+            DrawPanelComponent<Model>("Model 1", [&](){
+                DrawVec3UI("model", model_position);
+                DrawVec3UI("model scale", model_scale);
+                DrawVec3UI("model rotation", model_rotation);
+                DrawFloatUI("model angle", model_rotation_angle);
+            });
+
+
+            // MODEL2 PROPERTIES
+            DrawPanelComponent<Model>("Model 2", [&](){
+                DrawVec3UI("model2 pos", model_position2);
+                DrawVec3UI("model2 scale", model_scale2);
+                DrawVec3UI("model2 rotation", model_rotation2);
+            });
+
+            DrawPanelComponent<Model>("Model 3", [&](){
+                DrawVec3UI("model3 pos", model_position3);
+                DrawVec3UI("model3 scale", model_scale3);
+                DrawVec3UI("model3 rotation", model_rotation3);
+            });
+
+            // // SPOT LIGHT STUFF
+            DrawPanelComponent<Model>("Spot Light", [&](){
+                DrawVec3UI("Spot Light Position", spot_light.Position);
+                DrawVec3UI("Spot Light Direction", spot_light.Direction);
+                DrawVec3UI("Spot Light Ambient", spot_light.ambient);
+                DrawVec3UI("Spot Light Diffuse", spot_light.diffuse);
+                DrawVec3UI("Spot Light Specular", spot_light.specular);
+            });
+
+            DrawPanelComponent<Model>("Direction Light 1", [&](){
+                DrawVec3UI("Direction", dir_light.Direction);
+                DrawVec3UI("Diffuse", dir_light.diffuse);
+                DrawVec3UI("Specular", dir_light.specular);
+                DrawVec3UI("Ambient", dir_light.ambient);
+            });
+
+            ImGui::End();
 
             camera.SetCameraMovementSpeed(camera_sensitivity);
             camera.SetCameraMouseSpeed(camera_mouse_sensitivity);
-
-            // my_pointlight.SetPosition(pointlight_pos_test);
-            // my_pointlight.SetScale(pointlight_scale_test);
-            // my_pointlight.SetRotation(pointlight_rotation_test);
-
-
-            // Begin drag-drop sources
-            ImGui::BeginDragDropSource();
-            std::string path = "assets/";
-            ImGui::SetDragDropPayload("BROWSE_ITEM",path.c_str(), path.size());
-            ImGui::EndDragDropSource();
-
-            ImGui::Button("Texture", ImVec2(100.0f, 0.0f));
-
-            ImGui::BeginDragDropTarget();
-            if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM")){
-                const char* filepath = (const char*)payload->Data;
-                std::string texturePath = std::string(fmt::format("{} / {}", path, filepath));
-                test_model.OnReload(texturePath);
-
-                fmt::print("Model loaded path during rumtime was = {}\n", texturePath);
-            }
-            ImGui::EndDragDropTarget();
-
-
-            ImGui::End();
-
-            ImGui::End();
         });
 
-
-        // auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-		// auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-		// // @note If tab bar is expanded, then the cursor will be expanded
-		// auto viewportOffset = ImGui::GetWindowPos();
-
-		// viewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
-		// viewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
-
-        // auto[mouseX, mouseY] = ImGui::GetMousePos();
-        // mouseX -= viewportBounds[0].x;
-        // mouseY -= viewportBounds[0].y;
-
-        // glm::vec2 viewportSize = viewportBounds[1] - viewportBounds[0];
-		// mouseY = viewportSize.y - mouseY; // This makes our bottom left (0, 0)
-		// int current_mouse_x = (int)mouseX;
-		// int current_mouse_y = (int)mouseY;
-        // int pixel = frame_buffer.Read(1, current_mouse_x, current_mouse_y);
-        // fmt::print("Framebuffer Read Pixel = {}\n", pixel);
-
-        // fmt::print("camera sensitivity = {}\n", camera_sensitivity);
-        // fmt::print("new camera sensitivity set = {}\n", camera.GetCameraSensitivity());
         //! @note EndFrame ends per frame for entire imgui setup
         EndFrame(window, width, height);
 

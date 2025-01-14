@@ -108,14 +108,6 @@ void InitializeSkybox(VertexArray& vao){
 
 
 EnvironmentMap::EnvironmentMap(std::span<std::string> p_Faces){
-    // m_CubemapVao = VertexArray();
-    // InitializeCubemap(m_CubemapVao);
-
-    // m_CubemapVao.SetVertexAttribute({
-    //     {VertexAttributeType::FLOAT3, "aPos", false},
-    //     {VertexAttributeType::FLOAT2, "aTexCoords", false}
-    // });
-
     m_SkyboxVao = VertexArray();
     InitializeSkybox(m_SkyboxVao);
     m_SkyboxVao.SetVertexAttribute({
@@ -125,20 +117,47 @@ EnvironmentMap::EnvironmentMap(std::span<std::string> p_Faces){
     });
 
     m_CubemapTextures = TextureCubemap(p_Faces);
-    // m_CubemapShader = ShaderLibrary::GetShader("cubemap");
-
-    // m_CubemapShader.Bind();
-    // m_CubemapShader.Set("skybox", 0);
-
     m_SkyboxShader = ShaderLibrary::GetShader("skybox");
     m_SkyboxShader.Bind();
     m_SkyboxShader.Set("skybox", 0);
 }
 
+EnvironmentMap::EnvironmentMap(const std::string& p_Filepath, bool isHDRIEnabled){
+    m_SkyboxVao = VertexArray();
+    InitializeSkybox(m_SkyboxVao);
+    m_SkyboxVao.SetVertexAttribute({
+        {VertexAttributeType::FLOAT3, "aPos", false},
+        {VertexAttributeType::FLOAT3, "aNormal", false},
+        // {VertexAttributeType::FLOAT3, "a", false}
+    });
+
+    int w, h, pixel_channels;
+    float* data = stbi_loadf(p_Filepath.c_str(), &w, &h, &pixel_channels, 0);
+
+    if(data){
+        glGenTextures(1, &m_HdrMap);
+        glBindTexture(GL_TEXTURE_2D, m_HdrMap);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_FLOAT, data); // note how we specify the texture's data value to be float
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+
+    m_CubemapTextures = TextureCubemap(w, h, 1);
+    hdrShader = ShaderLibrary::GetShader("hdr");
+    usingHDR = isHDRIEnabled;
+}
+
 void EnvironmentMap::Bind() {
+    glBindTexture(GL_TEXTURE_2D, m_HdrMap);
 }
 
 void EnvironmentMap::Unbind(){
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void EnvironmentMap::OnUpdate(Camera& camera, glm::mat4& projection, uint32_t width, uint32_t height){
@@ -159,22 +178,31 @@ void EnvironmentMap::OnUpdate(Camera& camera, glm::mat4& projection, uint32_t wi
     // m_CubemapVao.Unbind();
 
     glDepthFunc(GL_LEQUAL);
+
+    if(usingHDR){
+        hdrShader.Bind();
+        
+        Renderer::DrawQuadPrimitive(m_SkyboxVao);
+        hdrShader.Unbind();
+    }
+    else{
     //! @note Only the skybox needs it.
-    m_SkyboxShader.Bind();
-    m_View = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-    m_SkyboxShader.Set("cameraPos", camera.Position);
-    m_SkyboxShader.Set("view", m_View);
-    m_SkyboxShader.Set("projection", projection);
-    m_SkyboxShader.Set("model", m_Model);
-    
-    m_SkyboxVao.Bind();
-    
-    //! @note We activate the cubemap face textures to render for our skybox
-    m_CubemapTextures.Bind();
-    // glDrawArrays(GL_TRIANGLES, 0, 36);
-    Renderer::DrawQuadPrimitive(m_SkyboxVao);
-    glDepthFunc(GL_LESS);
-    m_SkyboxVao.Unbind();
+        m_SkyboxShader.Bind();
+        m_View = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+        m_SkyboxShader.Set("cameraPos", camera.Position);
+        m_SkyboxShader.Set("view", m_View);
+        m_SkyboxShader.Set("projection", projection);
+        m_SkyboxShader.Set("model", m_Model);
+        
+        m_SkyboxVao.Bind();
+        
+        //! @note We activate the cubemap face textures to render for our skybox
+        m_CubemapTextures.Bind();
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        Renderer::DrawQuadPrimitive(m_SkyboxVao);
+        glDepthFunc(GL_LESS);
+        m_SkyboxVao.Unbind();
+    }
 }
 
 bool EnvironmentMap::IsLoaded() const {

@@ -8,6 +8,10 @@ out vec4 Color;
 out vec3 Normal;
 out vec2 TexCoords;
 
+out vec3 TangentLightPos;
+out vec3 TangentViewPos;
+out vec3 TangentFragPos;
+
 // Updating to integrate shadow mapping
 out vec4 FragPosLightSpace;
 
@@ -16,10 +20,12 @@ uniform mat4 view;
 uniform mat4 projection;
 // uniform mat4 lightSpaceMatrix; // proj * view
 uniform int pointLightCount;
+uniform int directionLightCount;
+uniform int spotLightCount;
 
 void main(){
     FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;  
+    Normal = mat3(transpose(inverse(model))) * aNormal; 
     TexCoords = aTexCoords;
     // FragPosLightSpace = lightSpaceMatrix * model * vec4(FragPos, 1.0);
     // lightSpaceMatrix = proj * view

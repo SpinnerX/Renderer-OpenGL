@@ -14,24 +14,24 @@ struct PointLight{
 };
 
 struct DirectionLight{
-    glm::vec3 Direction;
+    glm::vec3 Direction = {-0.2f, -1.0f, -0.3f};
 
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
+    glm::vec3 ambient = {0.05f, 0.05f, 0.05f};
+    glm::vec3 diffuse = {0.4f, 0.4f, 0.4f};
+    glm::vec3 specular = {0.5f, 0.5f, 0.5f};
 };
 
 struct SpotLight{
     glm::vec3 Position;
-    glm::vec3 Direction;
+    glm::vec3 Direction{1.f, 0.f, 0.f};
     float cut_off;
     float outer_cut_off;
 
-    float constant;
-    float linear;
-    float quadratic;
+    float constant{1.f};
+    float linear{0.09f};
+    float quadratic{0.032f};
 
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
+    glm::vec3 ambient{0.0f, 0.0f, 0.0f};
+    glm::vec3 diffuse{1.0f, 1.0f, 1.0f};
+    glm::vec3 specular{1.0f, 1.0f, 1.0f};
 };

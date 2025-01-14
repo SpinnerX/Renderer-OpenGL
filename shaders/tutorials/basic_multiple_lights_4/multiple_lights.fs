@@ -6,6 +6,7 @@ struct Material{
     // vec3 diffuse;
     sampler2D diffuse;
     sampler2D specular;
+    sampler2D emission;
     // vec3 specular;
     float shininess;
 };
@@ -47,6 +48,9 @@ struct SpotLight{
 
 // const int MAX_POINT_LIGHTS = 4;
 uniform int pointLightCount;
+uniform int directionLightCount;
+uniform int spotLightCount;
+
 const int MAX_POINT_LIGHTS = 4;
 uniform PointLight point_lights[MAX_POINT_LIGHTS];
 // uniform PointLight point_light;
@@ -88,8 +92,24 @@ float ShadowMappingCaluclation(vec4 fragPosLightSpace){
     return shadow;
 }
 
+// Applying shadow-mapping to our directional lighting
+float DirectionLightShadowMapping(vec4 fragPosLightSpace){
+    return 0.0;
+}
+
+// Applying shadow-mapping to our point lights
+float PointLightShadowMapping(vec4 fragPosLightSpace){
+    return 0.0;
+}
+
+// Applying shadow-mapping to our spot lights
+float SpotLightShadowMapping(vec4 fragPosLightSpace){
+    return 0.0;
+}
+
+
 // fragPos - position of specific light source
-vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 color){
+vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir){
     vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -104,11 +124,12 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 color)
     // Handle shadow-mapping for dir light
     vec4 frag_pos_for_shadow = view * projection * vec4(FragPos, 1.0);
     float shadow = ShadowMappingCaluclation(frag_pos_for_shadow);
-    return (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+    return (ambient + (1.0 - shadow) * (diffuse + specular));
+    // return (ambient + (1.0 - shadow) * (diffuse + specular)) * emission * color;
     // return (ambient + diffuse + specular);
 }
 
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color){
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -116,9 +137,9 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     // attenuation
-    float distance    = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + 
-  			     light.quadratic * (distance * distance));
+    float dist    = length(light.position - fragPos); // this is our distance
+    float attenuation = 1.0 / (light.constant + light.linear * dist + 
+  			     light.quadratic * (dist * dist));
     
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture(material.diffuse, TexCoords));
@@ -133,11 +154,12 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     // Handle shadow-mapping for dir light
     vec4 frag_pos_for_shadow = view * projection * vec4(FragPos, 1.0);
     float shadow = ShadowMappingCaluclation(frag_pos_for_shadow);
-    return (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+    return (ambient + (1.0 - shadow) * (diffuse + specular));
+    // return (ambient + (1.0 - shadow) * (diffuse + specular)) * emission * color;
     // return (ambient + diffuse + specular);
 }
 
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color){
+vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir){
     vec3 lightDir = normalize(light.position - FragPos);
     float diff = max(dot(normal, FragPos), 0.0);
     vec3 reflectDir = reflect(-lightDir, normal);
@@ -160,28 +182,41 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec
     // Handle shadow-mapping for dir light
     vec4 frag_pos_for_shadow = view * projection * vec4(FragPos, 1.0);
     float shadow = ShadowMappingCaluclation(frag_pos_for_shadow);
-    return (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+    return (ambient + (1.0 - shadow) * (diffuse + specular));
+    // return (ambient + (1.0 - shadow) * (diffuse + specular)) * emission * color;
     // return (ambient + diffuse + specular);
 }
 
 void main(){
-    float gamma = 2.2;
+    float gamma = 0.5;
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
 
+    // provides us with with the color for our textures
     vec3 color = texture(material.diffuse, TexCoords).rgb;
+    vec3 emission = texture(material.emission, TexCoords).rgb;
+    vec3 result = vec3(1.0, 1.0, 1.0);
 
-    vec3 result = CalcDirLight(dir_light, norm, viewDir, color);
+    if(directionLightCount != 0){
+        result = CalcDirLight(dir_light, norm, viewDir);
+    }
 
     //! @note We should have a uniform that is our point light count
     //! @note This way we can keep track of our point lights that have been created
     if(pointLightCount != 0){
         for(int i = 0; i < 4; i++){
-            result += CalcPointLight(point_lights[i], norm, FragPos, viewDir, color);
+            result += CalcPointLight(point_lights[i], norm, FragPos, viewDir);
         }
     }
 
-    result += CalcSpotLight(spot_light, norm, FragPos, viewDir, color);
+    if(spotLightCount != 0){
+        result += CalcSpotLight(spot_light, norm, FragPos, viewDir);
+    }
+
+    //! @note If there are no lights created then we will just render our scene exactly without those light properties
+    //! @note We apply color of our textures to this fragment shader
+    //! @note This allows us to still show our textures even though we do not have a light source attached or detached from our scene
+    result *= color;
 
     FragColor = vec4(result, 1.0);
 }
